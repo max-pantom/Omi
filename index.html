@@ -307,7 +307,7 @@
       <li onclick="saveSnapshot()">Save</li>
       <li onclick="loadSnapshots()">Load</li>
       <li onclick="showHistory()">History</li>
-      <li onclick="copyText(editor.innerText)">Copy</li>
+      <li onclick="copyContent()">Copy</li>
     </ul>
   </div>
   <div id="word-count"></div>
@@ -548,31 +548,43 @@
     editor.addEventListener('blur', updatePlaceholder);
 
     // Copy helper
-    function copyText(text) {
-      navigator.clipboard.writeText(text).then(() => {
-        showCopyToast();
-      }).catch(err => {
-        console.error('Failed to copy: ', err);
-      });
-    }
-    // Updated toast for copy
-    function showCopyToast(message = 'Copied!') {
-      let toast = document.createElement('div');
-      toast.textContent = message;
-      toast.style.position = 'fixed';
-      toast.style.left = '1vw'; // Align with the word counter
-      toast.style.bottom = '1.5vh'; // Align with the word counter
-      toast.style.color = '#aaa'; // Match word counter color
-      toast.style.fontSize = '0.95rem'; // Match word counter font size
-      toast.style.zIndex = 9999;
-      toast.style.opacity = 1; // Keep it visible
-      document.body.appendChild(toast);
+    function copyContent() {
+      const content = editor.innerHTML; // Get the current content of the editor
+      const format = 'Plain Text'; // You can modify this to allow format selection if needed
 
-      // Optional: Add a timeout to remove the toast after a certain period
-      setTimeout(() => {
-        toast.style.opacity = 0; // Fade out
-        setTimeout(() => toast.remove(), 200); // Remove after fade out
-      }, 3000); // Adjust duration as needed
+      if (format === "Plain Text") {
+        const output = editor.innerText;
+        navigator.clipboard.writeText(output).then(() => {
+          showToast("Copied as Plain Text");
+          removeSlashCommand('/copy'); // Remove the command from the editor
+        }).catch(err => {
+          console.error('Failed to copy: ', err);
+        });
+      } else if (format === "Markdown") {
+        const output = toMarkdown(content);
+        navigator.clipboard.writeText(output).then(() => {
+          showToast("Copied as Markdown");
+          removeSlashCommand('/copy'); // Remove the command from the editor
+        }).catch(err => {
+          console.error('Failed to copy: ', err);
+        });
+      } else if (format === "HTML") {
+        navigator.clipboard.writeText(content).then(() => {
+          showToast("Copied as HTML");
+          removeSlashCommand('/copy'); // Remove the command from the editor
+        }).catch(err => {
+          console.error('Failed to copy: ', err);
+        });
+      } else if (format === "Rich Text") {
+        const blob = new Blob([content], { type: "text/html" });
+        const item = new ClipboardItem({ "text/html": blob });
+        navigator.clipboard.write([item]).then(() => {
+          showToast("Copied as Rich Text");
+          removeSlashCommand('/copy'); // Remove the command from the editor
+        }).catch(err => {
+          console.error('Failed to copy: ', err);
+        });
+      }
     }
 
     // CMD/CTRL+M for theme mode
@@ -706,7 +718,7 @@
             removeSlashCommand('/stats');
         } else if (text.endsWith('/copy')) {
           e.preventDefault();
-          toggleDropdown();
+          handleCopyCommand();
         } else if (text === '/load') {
           e.preventDefault();
           loadSnapshots();
@@ -1069,16 +1081,36 @@
 
       if (format === "Plain Text") {
         output = editor.innerText;
-        navigator.clipboard.writeText(output).then(() => showToast("Copied as Plain Text"));
+        navigator.clipboard.writeText(output).then(() => {
+          showToast("Copied as Plain Text");
+          removeSlashCommand('/copy');
+        }).catch(err => {
+          console.error('Failed to copy: ', err);
+        });
       } else if (format === "Markdown") {
         output = toMarkdown(content);
-        navigator.clipboard.writeText(output).then(() => showToast("Copied as Markdown"));
+        navigator.clipboard.writeText(output).then(() => {
+          showToast("Copied as Markdown");
+          removeSlashCommand('/copy');
+        }).catch(err => {
+          console.error('Failed to copy: ', err);
+        });
       } else if (format === "HTML") {
-        navigator.clipboard.writeText(content).then(() => showToast("Copied as HTML"));
+        navigator.clipboard.writeText(content).then(() => {
+          showToast("Copied as HTML");
+          removeSlashCommand('/copy');
+        }).catch(err => {
+          console.error('Failed to copy: ', err);
+        });
       } else if (format === "Rich Text") {
         const blob = new Blob([content], { type: "text/html" });
         const item = new ClipboardItem({ "text/html": blob });
-        navigator.clipboard.write([item]).then(() => showToast("Copied as Rich Text"));
+        navigator.clipboard.write([item]).then(() => {
+          showToast("Copied as Rich Text");
+          removeSlashCommand('/copy');
+        }).catch(err => {
+          console.error('Failed to copy: ', err);
+        });
       }
     }
 
@@ -1111,6 +1143,48 @@
         if (dropdown) {
           dropdown.remove(); // Close the dropdown
         }
+
+        // Remove the '/copy' command from the editor
+        removeSlashCommand('/copy'); // Remove the command from the editor
+      }
+    }
+
+    function handleCopyCommand() {
+      const content = editor.innerHTML; // Get the current content of the editor
+      const format = 'Plain Text'; // You can modify this to allow format selection if needed
+
+      if (format === "Plain Text") {
+        const output = editor.innerText;
+        navigator.clipboard.writeText(output).then(() => {
+          showToast("Copied as Plain Text");
+          removeSlashCommand('/copy'); // Remove the command from the editor
+        }).catch(err => {
+          console.error('Failed to copy: ', err);
+        });
+      } else if (format === "Markdown") {
+        const output = toMarkdown(content);
+        navigator.clipboard.writeText(output).then(() => {
+          showToast("Copied as Markdown");
+          removeSlashCommand('/copy'); // Remove the command from the editor
+        }).catch(err => {
+          console.error('Failed to copy: ', err);
+        });
+      } else if (format === "HTML") {
+        navigator.clipboard.writeText(content).then(() => {
+          showToast("Copied as HTML");
+          removeSlashCommand('/copy'); // Remove the command from the editor
+        }).catch(err => {
+          console.error('Failed to copy: ', err);
+        });
+      } else if (format === "Rich Text") {
+        const blob = new Blob([content], { type: "text/html" });
+        const item = new ClipboardItem({ "text/html": blob });
+        navigator.clipboard.write([item]).then(() => {
+          showToast("Copied as Rich Text");
+          removeSlashCommand('/copy'); // Remove the command from the editor
+        }).catch(err => {
+          console.error('Failed to copy: ', err);
+        });
       }
     }
   </script>
