@@ -310,6 +310,7 @@
   <div id="copyDropdown"></div>
   <div id="toast"></div>
   <script>
+    const SNAPSHOT_KEY = "omi-snapshots"; // Define the key for storing snapshots
     const editor = document.getElementById('editor');
     const menu = document.getElementById('command-menu');
     let selectionRange = null;
@@ -514,7 +515,7 @@
             }
             node.replaceWith(frag);
           }
-        } else if (node.nodeType === 1 && node.childNodes && node.tagName !== 'A' && node.tagName !== 'B' && node.tagName !== 'I' && node.tagName !== 'CODE') {
+        } else if (node.nodeType === 1 && node.childNodes && node.tagName !== 'B' && node.tagName !== 'I' && node.tagName !== 'CODE') {
           for (let i = node.childNodes.length - 1; i >= 0; i--) {
             processNode(node.childNodes[i]);
           }
@@ -550,10 +551,7 @@
       toast.style.position = 'fixed';
       toast.style.left = '1vw'; // Align with the word counter
       toast.style.bottom = '1.5vh'; // Align with the word counter
-      toast.style.background = 'rgba(30,30,30,0.92)';
-      toast.style.color = '#fff';
-      toast.style.padding = '0.5em 1.2em';
-      toast.style.borderRadius = '6px';
+      toast.style.color = '#aaa'; // Match word counter color
       toast.style.fontSize = '0.95rem'; // Match word counter font size
       toast.style.zIndex = 9999;
       toast.style.opacity = 1; // Keep it visible
@@ -698,6 +696,9 @@
         } else if (text.endsWith('/copy')) {
           e.preventDefault();
           toggleDropdown();
+        } else if (text === '/load') {
+          e.preventDefault();
+          loadSnapshots();
         }
       } else if (dropdown.style.display === "block") {
         if (e.key === 'ArrowDown') {
@@ -754,12 +755,12 @@
 
     // Save snapshot
     function saveSnapshot() {
-      const snapshotName = prompt("Enter a name for your snapshot:");
-      if (snapshotName) {
-        const key = `omi-snapshot-${snapshotName}-${new Date().toISOString()}`;
-        localStorage.setItem(key, editor.innerHTML);
-        showCopyToast('Snapshot saved');
-      }
+      const content = editor.innerHTML;
+      const now = new Date().toLocaleString();
+      const snapshots = JSON.parse(localStorage.getItem(SNAPSHOT_KEY)) || [];
+      snapshots.unshift({ name: `Snapshot - ${now}`, content });
+      localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(snapshots));
+      showToast("Snapshot saved");
     }
 
     // Export as .txt or .md
@@ -947,13 +948,41 @@
 
     function loadSnapshots() {
       const snapshots = Object.keys(localStorage).filter(key => key.startsWith('omi-snapshot-'));
-      const snapshotList = snapshots.map(key => {
+      console.log('Snapshots found:', snapshots); // Debugging line
+
+      if (snapshots.length === 0) {
+        showCopyToast('No snapshots available');
+        return; // Exit if there are no snapshots
+      }
+
+      // Create dropdown
+      const dropdown = document.createElement('div');
+      dropdown.style.position = 'absolute';
+      dropdown.style.background = 'white';
+      dropdown.style.borderRadius = '8px';
+      dropdown.style.padding = '0.5rem';
+      dropdown.style.zIndex = '1000';
+      dropdown.style.boxShadow = 'none'; // No shadow as per your requirement
+      dropdown.innerHTML = `<ul style="list-style: none; margin: 0; padding: 0;">${snapshots.map(key => {
         const time = key.split('-').slice(-1)[0]; // Extract timestamp
-        return `<li>${key} - ${time}</li>`;
-      }).join('');
+        return `<li onclick="revertToSnapshot('${key}')">${key} - ${time}</li>`;
+      }).join('')}</ul>`;
       
-      // Display snapshotList in a dropdown/modal
-      // Add click event to load the selected snapshot
+      // Append dropdown to body
+      document.body.appendChild(dropdown);
+      
+      // Position the dropdown
+      const commandBar = document.getElementById('commandBar');
+      const rect = commandBar.getBoundingClientRect();
+      dropdown.style.top = `${rect.bottom + window.scrollY}px`;
+      dropdown.style.left = `${rect.left + window.scrollX}px`;
+
+      // Close dropdown on click outside
+      document.addEventListener('click', (event) => {
+        if (!dropdown.contains(event.target) && event.target !== commandBar) {
+          dropdown.remove(); // Remove dropdown if clicked outside
+        }
+      });
     }
 
     let historySnapshots = [];
@@ -1047,6 +1076,16 @@
       setTimeout(() => {
         toast.style.display = "none";
       }, 2000);
+    }
+
+    // Revert to selected snapshot
+    function revertToSnapshot(key) {
+      const snapshotContent = localStorage.getItem(key);
+      if (snapshotContent) {
+        editor.innerHTML = snapshotContent;
+        localStorage.setItem('omi-content', snapshotContent); // Update the main content
+        showCopyToast('Reverted to snapshot');
+      }
     }
   </script>
 </body>
