@@ -676,52 +676,58 @@
         const text = editor.innerText.trim();
         
         if (text.endsWith('/clear')) {
-          e.preventDefault();
-          clearEditor();
-          removeSlashCommand('/clear');
-        } else if (text.endsWith('/save')) {
-          e.preventDefault();
-          saveSnapshot();
-          removeSlashCommand('/save');
-        } else if (text.endsWith('/export')) {
-            e.preventDefault();
-            exportContent();
-            removeSlashCommand('/export');
-        } else if (text.endsWith('/focus')) {
-            e.preventDefault();
-            document.body.classList.toggle('focus-mode');
-            toggleActiveCommand('focus');
-            removeSlashCommand('/focus');
-        } else if (/\/zen$/.test(text)) {
-            e.preventDefault();
-            toggleZenMode();
-            toggleActiveCommand('zen');
-            removeSlashCommand('/zen');
-        } else if (/\/timer(\s+\d+|\s+stop|\s+0)?$/.test(text)) {
-            e.preventDefault();
-            const match = text.match(/\/timer(?:\s+(\d+|stop|0))?$/);
-            if (match) {
-              if (match[1] === 'stop' || match[1] === '0') {
-                stopTimer();
-                toggleActiveCommand('timer', false);
-              } else {
-                let mins = parseInt(match[1] || '25', 10);
-                if (!isNaN(mins) && mins > 0) startTimer(mins);
-                toggleActiveCommand('timer', true, mins);
-              }
-            }
-          removeSlashCommand(/\/timer(\s+\d+|\s+stop|\s+0)?$/);
-        } else if (/\/stats$/.test(text)) {
-          e.preventDefault();
-            showStatsMinimal();
-            toggleActiveCommand('stats', true);
-            removeSlashCommand('/stats');
+          e.preventDefault(); // Prevent the default action
+          clearEditorContent(); // Call the function to clear the editor content
+          removeSlashCommand('/clear'); // Remove the command from the editor
+        } else if (text.endsWith('/clearx')) {
+          e.preventDefault(); // Prevent the default action
+          clearAll(); // Call the function to clear all content and reset
+          removeSlashCommand('/clearx'); // Remove the command from the editor
         } else if (text.endsWith('/copy')) {
           e.preventDefault();
-          handleCopyCommand();
-        } else if (text === '/load') {
+          handleCopyCommand(); // Call the function to copy content
+          removeSlashCommand('/copy'); // Remove the command from the editor
+        } else if (text.endsWith('/load')) {
           e.preventDefault();
-          loadSnapshots();
+          loadSnapshots(); // Call the function to load snapshots
+          removeSlashCommand('/load'); // Remove the command from the editor
+        } else if (text.endsWith('/save')) {
+          e.preventDefault();
+          saveSnapshot(); // Call the function to save a snapshot
+          removeSlashCommand('/save'); // Remove the command from the editor
+        } else if (text.endsWith('/export')) {
+          e.preventDefault();
+          exportContent(); // Call the function to export content
+          removeSlashCommand('/export'); // Remove the command from the editor
+        } else if (text.endsWith('/focus')) {
+          e.preventDefault();
+          document.body.classList.toggle('focus-mode');
+          toggleActiveCommand('focus');
+          removeSlashCommand('/focus'); // Remove the command from the editor
+        } else if (/\/zen$/.test(text)) {
+          e.preventDefault();
+          toggleZenMode();
+          toggleActiveCommand('zen');
+          removeSlashCommand('/zen'); // Remove the command from the editor
+        } else if (/\/timer(\s+\d+|\s+stop|\s+0)?$/.test(text)) {
+          e.preventDefault();
+          const match = text.match(/\/timer(?:\s+(\d+|stop|0))?$/);
+          if (match) {
+            if (match[1] === 'stop' || match[1] === '0') {
+              stopTimer();
+              toggleActiveCommand('timer', false);
+            } else {
+              let mins = parseInt(match[1] || '25', 10);
+              if (!isNaN(mins) && mins > 0) startTimer(mins);
+              toggleActiveCommand('timer', true, mins);
+            }
+          }
+          removeSlashCommand(/\/timer(\s+\d+|\s+stop|\s+0)?$/); // Remove the command from the editor
+        } else if (/\/stats$/.test(text)) {
+          e.preventDefault();
+          showStatsMinimal();
+          toggleActiveCommand('stats', true);
+          removeSlashCommand('/stats'); // Remove the command from the editor
         }
       } else if (dropdown.style.display === "block") {
         if (e.key === 'ArrowDown') {
@@ -737,7 +743,7 @@
           if (selectedOptionIndex >= 0) {
             handleCopy(copyFormats[selectedOptionIndex]);
             dropdown.style.display = "none";
-            removeSlashCommand('/copy');
+            removeSlashCommand('/copy'); // Remove the command from the editor
           }
         }
       }
@@ -778,12 +784,12 @@
 
     // Save snapshot
     function saveSnapshot() {
-      const content = editor.innerHTML;
-      const now = new Date().toLocaleString();
-      const snapshots = JSON.parse(localStorage.getItem(SNAPSHOT_KEY)) || [];
-      snapshots.unshift({ name: `Snapshot - ${now}`, content });
-      localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(snapshots));
-      showToast("Snapshot saved");
+      const content = editor.innerHTML; // Get the current content of the editor
+      const now = new Date().toLocaleString(); // Get the current timestamp
+      const snapshots = JSON.parse(localStorage.getItem(SNAPSHOT_KEY)) || []; // Retrieve existing snapshots or initialize an empty array
+      snapshots.unshift({ name: `Snapshot - ${now}`, content }); // Add the new snapshot to the beginning of the array
+      localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(snapshots)); // Save the updated snapshots array to localStorage
+      showToast("Snapshot saved"); // Show feedback to the user
     }
 
     // Export as .txt or .md
@@ -962,11 +968,9 @@
     document.addEventListener('scroll', updateMacCaret, true);
     window.addEventListener('resize', updateMacCaret);
 
-    function clearEditor() {
-      editor.innerHTML = '';
-      localStorage.setItem('omi-content', '');
-          updateWordCount();
-    updatePlaceholder();
+    function clearEditorContent() {
+      editor.innerHTML = ''; // Clear the editor content
+      showToast("Editor content cleared."); // Show feedback
     }
 
     function loadSnapshots() {
@@ -1151,41 +1155,22 @@
 
     function handleCopyCommand() {
       const content = editor.innerHTML; // Get the current content of the editor
-      const format = 'Plain Text'; // You can modify this to allow format selection if needed
+      const output = editor.innerText; // Default to Plain Text
 
-      if (format === "Plain Text") {
-        const output = editor.innerText;
-        navigator.clipboard.writeText(output).then(() => {
-          showToast("Copied as Plain Text");
-          removeSlashCommand('/copy'); // Remove the command from the editor
-        }).catch(err => {
-          console.error('Failed to copy: ', err);
-        });
-      } else if (format === "Markdown") {
-        const output = toMarkdown(content);
-        navigator.clipboard.writeText(output).then(() => {
-          showToast("Copied as Markdown");
-          removeSlashCommand('/copy'); // Remove the command from the editor
-        }).catch(err => {
-          console.error('Failed to copy: ', err);
-        });
-      } else if (format === "HTML") {
-        navigator.clipboard.writeText(content).then(() => {
-          showToast("Copied as HTML");
-          removeSlashCommand('/copy'); // Remove the command from the editor
-        }).catch(err => {
-          console.error('Failed to copy: ', err);
-        });
-      } else if (format === "Rich Text") {
-        const blob = new Blob([content], { type: "text/html" });
-        const item = new ClipboardItem({ "text/html": blob });
-        navigator.clipboard.write([item]).then(() => {
-          showToast("Copied as Rich Text");
-          removeSlashCommand('/copy'); // Remove the command from the editor
-        }).catch(err => {
-          console.error('Failed to copy: ', err);
-        });
-      }
+      navigator.clipboard.writeText(output).then(() => {
+        showToast("Copied as Plain Text");
+        removeSlashCommand('/copy'); // Remove the command from the editor
+      }).catch(err => {
+        console.error('Failed to copy: ', err);
+      });
+    }
+
+    // Clear all content and reset
+    function clearAll() {
+      editor.innerHTML = ''; // Clear the editor content
+      localStorage.removeItem(SNAPSHOT_KEY); // Clear snapshots
+      localStorage.removeItem('omi-content'); // Clear main content
+      showToast("All content cleared and reset."); // Show feedback
     }
   </script>
 </body>
