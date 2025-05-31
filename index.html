@@ -282,6 +282,17 @@
       display: none;
       z-index: 9999;
     }
+    .snapshotItem {
+      padding: 0.5rem 1rem; /* Add padding for better click area */
+      transition: background 0.2s; /* Smooth background transition */
+    }
+    .snapshotItem:hover {
+      background: #f0f0f0; /* Light background on hover */
+    }
+    .snapshotItem:focus {
+      outline: none; /* Remove default outline */
+      background: #e0e0e0; /* Highlight on focus */
+    }
   </style>
 </head>
 <body>
@@ -947,35 +958,45 @@
     }
 
     function loadSnapshots() {
-      const snapshots = Object.keys(localStorage).filter(key => key.startsWith('omi-snapshot-'));
+      const snapshots = JSON.parse(localStorage.getItem(SNAPSHOT_KEY)) || []; // Retrieve existing snapshots
+
       console.log('Snapshots found:', snapshots); // Debugging line
 
       if (snapshots.length === 0) {
-        showCopyToast('No snapshots available');
+        showToast('No snapshots available'); // Show feedback if no snapshots exist
         return; // Exit if there are no snapshots
       }
 
       // Create dropdown
       const dropdown = document.createElement('div');
       dropdown.style.position = 'absolute';
-      dropdown.style.background = 'white';
+      dropdown.style.background = '#fff'; // Match app background
       dropdown.style.borderRadius = '8px';
       dropdown.style.padding = '0.5rem';
       dropdown.style.zIndex = '1000';
-      dropdown.style.boxShadow = 'none'; // No shadow as per your requirement
-      dropdown.innerHTML = `<ul style="list-style: none; margin: 0; padding: 0;">${snapshots.map(key => {
-        const time = key.split('-').slice(-1)[0]; // Extract timestamp
-        return `<li onclick="revertToSnapshot('${key}')">${key} - ${time}</li>`;
+      dropdown.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.2)'; // Slightly darker shadow for depth
+      dropdown.style.maxHeight = '300px'; // Limit height for better usability
+      dropdown.style.overflowY = 'auto'; // Enable scrolling if too many snapshots
+      dropdown.style.width = '200px'; // Set a fixed width for consistency
+      dropdown.style.fontFamily = 'inherit'; // Match app font
+      dropdown.style.color = '#333'; // Darker text for readability
+
+      dropdown.innerHTML = `<ul style="list-style: none; margin: 0; padding: 0;">${snapshots.map((snap, index) => {
+        return `<li class="snapshotItem" onclick="revertToSnapshot(${index}, dropdown)">${snap.name}</li>`; // Create list items for each snapshot
       }).join('')}</ul>`;
-      
+
       // Append dropdown to body
       document.body.appendChild(dropdown);
-      
+      console.log('Dropdown created and appended:', dropdown); // Debugging line
+
       // Position the dropdown
       const commandBar = document.getElementById('commandBar');
       const rect = commandBar.getBoundingClientRect();
       dropdown.style.top = `${rect.bottom + window.scrollY}px`;
       dropdown.style.left = `${rect.left + window.scrollX}px`;
+
+      // Show the dropdown
+      dropdown.style.display = 'block'; // Ensure dropdown is visible
 
       // Close dropdown on click outside
       document.addEventListener('click', (event) => {
@@ -1079,12 +1100,17 @@
     }
 
     // Revert to selected snapshot
-    function revertToSnapshot(key) {
-      const snapshotContent = localStorage.getItem(key);
-      if (snapshotContent) {
-        editor.innerHTML = snapshotContent;
-        localStorage.setItem('omi-content', snapshotContent); // Update the main content
-        showCopyToast('Reverted to snapshot');
+    function revertToSnapshot(index, dropdown) {
+      const snapshot = JSON.parse(localStorage.getItem(SNAPSHOT_KEY))[index];
+      if (snapshot) {
+        editor.innerHTML = snapshot.content;
+        localStorage.setItem('omi-content', snapshot.content); // Update the main content
+        showToast(`Loaded: ${snapshot.name}`); // Show feedback to the user
+
+        // Remove the dropdown after selection
+        if (dropdown) {
+          dropdown.remove(); // Close the dropdown
+        }
       }
     }
   </script>
