@@ -303,7 +303,7 @@
       <span class="type-caret"></span>
     </div>
     <ul id="commandBarList">
-      <li onclick="clearEditor()">Clear</li>
+      <li onclick="clearEditorContent()">Clear</li>
       <li onclick="saveSnapshot()">Save</li>
       <li onclick="loadSnapshots()">Load</li>
       <li onclick="showHistory()">History</li>
@@ -699,6 +699,10 @@
           e.preventDefault();
           exportContent(); // Call the function to export content
           removeSlashCommand('/export'); // Remove the command from the editor
+        } else if (text.endsWith('/history')) {
+          e.preventDefault();
+          showHistory();
+          removeSlashCommand('/history');
         } else if (text.endsWith('/focus')) {
           e.preventDefault();
           document.body.classList.toggle('focus-mode');
@@ -1034,6 +1038,58 @@
 
     // Call trackHistory() on major changes or at intervals
     setInterval(trackHistory, 5 * 60 * 1000); // Every 5 minutes
+
+    function showHistory() {
+      if (historySnapshots.length === 0) {
+        showToast('No history available');
+        return;
+      }
+
+      const historyDropdown = document.createElement('div');
+      historyDropdown.style.position = 'absolute';
+      historyDropdown.style.background = '#fff';
+      historyDropdown.style.borderRadius = '8px';
+      historyDropdown.style.padding = '0.5rem';
+      historyDropdown.style.zIndex = '1000';
+      historyDropdown.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.2)';
+      historyDropdown.style.maxHeight = '300px';
+      historyDropdown.style.overflowY = 'auto';
+      historyDropdown.style.width = '200px';
+      historyDropdown.style.fontFamily = 'inherit';
+      historyDropdown.style.color = '#333';
+
+      const items = historySnapshots.slice().reverse().map((content, i) => {
+        const index = historySnapshots.length - 1 - i;
+        return `<li class="snapshotItem" onclick="revertToHistory(${index}, historyDropdown)">Version ${index + 1}</li>`;
+      }).join('');
+
+      historyDropdown.innerHTML = `<ul style="list-style: none; margin: 0; padding: 0;">${items}</ul>`;
+
+      document.body.appendChild(historyDropdown);
+      const commandBar = document.getElementById('commandBar');
+      const rect = commandBar.getBoundingClientRect();
+      historyDropdown.style.top = `${rect.bottom + window.scrollY}px`;
+      historyDropdown.style.left = `${rect.left + window.scrollX}px`;
+      historyDropdown.style.display = 'block';
+
+      document.addEventListener('click', function handler(event) {
+        if (!historyDropdown.contains(event.target) && event.target !== commandBar) {
+          historyDropdown.remove();
+          document.removeEventListener('click', handler);
+        }
+      });
+    }
+
+    function revertToHistory(index, dropdownEl) {
+      const content = historySnapshots[index];
+      if (content !== undefined) {
+        editor.innerHTML = content;
+        localStorage.setItem('omi-content', content);
+        showToast(`Reverted to version ${index + 1}`);
+        if (dropdownEl) dropdownEl.remove();
+        removeSlashCommand('/history');
+      }
+    }
 
     const dropdown = document.getElementById("copyDropdown");
     const toast = document.getElementById("toast");
