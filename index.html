@@ -1172,6 +1172,66 @@
       localStorage.removeItem('omi-content'); // Clear main content
       showToast("All content cleared and reset."); // Show feedback
     }
+
+    // Add an event listener to the editor for slash commands
+    editor.addEventListener('input', (e) => {
+      const text = editor.innerText;
+      const lastSlashIndex = text.lastIndexOf('/');
+      
+      if (lastSlashIndex !== -1) {
+        const commandInput = text.slice(lastSlashIndex);
+        showCommandSuggestions(commandInput); // Show suggestions based on the command input
+      } else {
+        commandBarList.innerHTML = ''; // Clear suggestions if no slash is found
+      }
+    });
+
+    // Function to show command suggestions
+    function showCommandSuggestions(input) {
+      const suggestions = ['clear', 'save', 'load', 'history', 'copy', 'image', 'zen']; // Add 'zen' and any other commands
+      const filteredSuggestions = suggestions.filter(cmd => cmd.startsWith(input.slice(1))); // Remove the leading '/'
+
+      // Update the command bar list with suggestions
+      commandBarList.innerHTML = filteredSuggestions.map(cmd => `<li onclick="executeCommand('${cmd}')">${cmd}</li>`).join('');
+      
+      // Debugging: Log the suggestions
+      console.log('Suggestions:', filteredSuggestions);
+    }
+
+    // Function to execute the command
+    function executeCommand(cmd) {
+      console.log('Executing command:', cmd); // Debugging: Log the command being executed
+      if (cmd === 'image') {
+        openImageSelector();
+      } else {
+        // Handle other commands
+        // ... existing command handling logic ...
+      }
+      commandBarList.innerHTML = ''; // Clear suggestions after executing the command
+    }
+
+    // Function to open the file explorer for image selection
+    function openImageSelector() {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*'; // Accept only image files
+      input.onchange = (event) => {
+        const file = event.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const img = document.createElement('img');
+            img.src = e.target.result; // Set the image source to the file's data URL
+            img.alt = 'Image';
+            img.style.maxWidth = '100%'; // Optional: make the image responsive
+            editor.appendChild(img);
+            localStorage.setItem('omi-content', editor.innerHTML); // Save to localStorage
+          };
+          reader.readAsDataURL(file); // Read the file as a data URL
+        }
+      };
+      input.click(); // Programmatically click the input to open the file dialog
+    }
   </script>
   
   <script>
