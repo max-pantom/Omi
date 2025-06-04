@@ -235,11 +235,18 @@
     }
     .resizable {
       resize: both;
-
-      overflow: hidden;
-
+      display: inline-block;
       overflow: auto;
-
+    }
+    .resize-handle {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.4);
+      cursor: nwse-resize;
+      border-radius: 2px;
     }
     .image-comment {
       font-size: 0.9rem;
@@ -249,6 +256,55 @@
     .image-comment:empty:before {
       content: attr(data-placeholder);
       color: #aaa;
+    }
+    .link-preview {
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 0.5em;
+      display: flex;
+      gap: 0.5em;
+      align-items: center;
+      margin: 0.5em 0;
+      max-width: 400px;
+    }
+    .link-preview img {
+      width: 40px;
+      height: 40px;
+      object-fit: cover;
+      border-radius: 4px;
+    }
+    body.layout-blog #editor {
+      max-width: 40em;
+      margin: 0 auto;
+    }
+    body.layout-newsletter #editor {
+      max-width: 600px;
+      margin: 0 auto;
+      font-size: 1.1rem;
+    }
+    body.layout-ebook #editor {
+      max-width: 550px;
+      margin: 0 auto;
+      font-family: 'Times New Roman', serif;
+      line-height: 1.6;
+    }
+    #caretRipple {
+      position: fixed;
+      pointer-events: none;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.2);
+      width: 0;
+      height: 0;
+      opacity: 0;
+      transform: translate(-50%, -50%);
+      z-index: 10004;
+    }
+    @keyframes ripple {
+      from { width:0; height:0; opacity:0.4; }
+      to { width:30px; height:30px; opacity:0; }
+    }
+    .ripple-animate {
+      animation: ripple 0.8s ease-out;
     }
     body.typewriter-mode #editor {
       overflow-y: auto;
@@ -294,6 +350,7 @@
   <div id="link-tooltip" style="display:none;position:fixed;z-index:99999;"></div>
   <div id="copyDropdown"></div>
   <div id="toast"></div>
+  <div id="caretRipple"></div>
   <div id="command-help-btn" style="position:fixed;right:1vw;top:1.5vh;bottom:auto;color:#aaa;font-size:0.95rem;font-family:inherit;user-select:none;cursor:pointer;z-index:10001;">Commands</div>
   <div id="command-help-modal" style="display:none;position:fixed;z-index:10002;top:5vh;right:1vw;left:auto;transform:none;background:#fff;color:#222;padding:1.5em 2em;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.18);font-family:inherit;min-width:260px;max-width:90vw;"></div>
   <script>
@@ -313,6 +370,13 @@
       localStorage.setItem('omi-font', font);
     }
     setFont(currentFont);
+    function setLayout(layout) {
+      document.body.classList.remove('layout-blog','layout-newsletter','layout-ebook');
+      if (layout) document.body.classList.add('layout-' + layout);
+      localStorage.setItem('omi-layout', layout);
+    }
+    const savedLayout = localStorage.getItem('omi-layout');
+    if (savedLayout) setLayout(savedLayout);
     fontSwitcher.addEventListener('click', () => {
       const font = fonts[Math.floor(Math.random() * fonts.length)];
       setFont(font);
@@ -320,6 +384,9 @@
 
     // Load from localStorage
     editor.innerHTML = localStorage.getItem('omi-content') || '';
+    editor.querySelectorAll('img.resizable').forEach(makeImageResizable);
+    autoLink(editor);
+    editor.querySelectorAll('a').forEach(createLinkPreview);
     const savedTheme = localStorage.getItem('omi-theme') || 'light';
     document.body.setAttribute('data-theme', savedTheme);
 
@@ -424,6 +491,7 @@
               a.target = '_blank';
               a.setAttribute('spellcheck', 'false');
               frag.appendChild(a);
+              createLinkPreview(a);
               lastIndex = offset + url.length;
             });
             if (lastIndex < text.length) {
@@ -441,6 +509,30 @@
       processNode(container);
       // Set spellcheck=false on all links (in case of pasted HTML)
       container.querySelectorAll('a').forEach(a => a.setAttribute('spellcheck', 'false'));
+    }
+
+    function createLinkPreview(anchor) {
+      if (anchor.nextSibling && anchor.nextSibling.classList && anchor.nextSibling.classList.contains('link-preview')) return;
+      const url = anchor.href;
+      fetch('https://noembed.com/embed?url=' + encodeURIComponent(url))
+        .then(r => r.json())
+        .then(data => {
+          const preview = document.createElement('div');
+          preview.className = 'link-preview';
+          if (data.thumbnail_url) {
+            const img = document.createElement('img');
+            img.src = data.thumbnail_url;
+            preview.appendChild(img);
+          }
+          const div = document.createElement('div');
+          div.className = 'lp-content';
+          div.innerHTML = `<strong>${data.title || url}</strong>`;
+          if (data.provider_name) div.innerHTML += `<br><em>${data.provider_name}</em>`;
+          preview.appendChild(div);
+          anchor.parentNode.insertBefore(preview, anchor.nextSibling);
+          localStorage.setItem('omi-content', editor.innerHTML);
+        })
+        .catch(()=>{});
     }
 
     // Inline Markdown support: **bold** and *italic*
@@ -974,6 +1066,26 @@
     document.addEventListener('scroll', updateMacCaret, true);
     window.addEventListener('resize', updateMacCaret);
 
+    const caretRippleEl = document.getElementById('caretRipple');
+    let rippleTimer;
+    function triggerCaretRipple() {
+      const x = parseFloat(getComputedStyle(editor).getPropertyValue('--mac-caret-x'));
+      const y = parseFloat(getComputedStyle(editor).getPropertyValue('--mac-caret-y'));
+      const h = parseFloat(getComputedStyle(editor).getPropertyValue('--mac-caret-height'));
+      caretRippleEl.style.left = x + 'px';
+      caretRippleEl.style.top = (y + h) + 'px';
+      caretRippleEl.classList.remove('ripple-animate');
+      void caretRippleEl.offsetWidth;
+      caretRippleEl.classList.add('ripple-animate');
+    }
+    function scheduleRipple() {
+      clearTimeout(rippleTimer);
+      caretRippleEl.classList.remove('ripple-animate');
+      rippleTimer = setTimeout(triggerCaretRipple, 1000);
+    }
+    editor.addEventListener('input', scheduleRipple);
+    editor.addEventListener('keydown', scheduleRipple);
+
     function keepCaretCentered() {
       if (!document.body.classList.contains('typewriter-mode')) return;
       const sel = window.getSelection();
@@ -1223,15 +1335,7 @@
     }
 
     function handleCopyCommand() {
-      const content = editor.innerHTML; // Get the current content of the editor
-      const output = editor.innerText; // Default to Plain Text
-
-      navigator.clipboard.writeText(output).then(() => {
-        showToast("Copied as Plain Text");
-        removeSlashCommand('/copy'); // Remove the command from the editor
-      }).catch(err => {
-        console.error('Failed to copy: ', err);
-      });
+      toggleDropdown();
     }
 
     // Clear all content and reset
@@ -1243,21 +1347,29 @@
     }
 
     // Add an event listener to the editor for slash commands
-    editor.addEventListener('input', (e) => {
-      const text = editor.innerText;
-      const lastSlashIndex = text.lastIndexOf('/');
-
-        if (lastSlashIndex !== -1) {
-          const commandInput = text.slice(lastSlashIndex);
-          showCommandSuggestions(commandInput);
-        } else {
-          hideSlashSuggestions();
-        }
+    editor.addEventListener('input', () => {
+      showSlashSuggestionsForCurrent();
     });
+    function showSlashSuggestionsForCurrent() {
+      const sel = window.getSelection();
+      if (!sel.rangeCount) return;
+      const range = sel.getRangeAt(0).cloneRange();
+      const pre = range.cloneRange();
+      pre.selectNodeContents(editor);
+      pre.setEnd(range.endContainer, range.endOffset);
+      const text = pre.toString();
+      const lastSlashIndex = text.lastIndexOf('/');
+      if (lastSlashIndex !== -1 && (lastSlashIndex === 0 || /\s/.test(text[lastSlashIndex-1]))) {
+        const commandInput = text.slice(lastSlashIndex);
+        showCommandSuggestions(commandInput);
+      } else {
+        hideSlashSuggestions();
+      }
+    }
 
     // Function to show command suggestions
     function showCommandSuggestions(input) {
-        const suggestions = ["clear","save","load","history","copy","image","zen","focus","timer","stats","typewriter","lines","font"];
+        const suggestions = ["clear","save","load","history","copy","image","zen","focus","timer","stats","typewriter","lines","font","blog","newsletter","ebook"];
         const filteredSuggestions = suggestions.filter(cmd => cmd.startsWith(input.slice(1)));
 
         slashSuggestions.innerHTML = filteredSuggestions.map(cmd => `<li data-cmd="${cmd}">${cmd}</li>`).join("");
@@ -1345,6 +1457,12 @@
       } else if (cmd === 'font') {
         const font = fonts[Math.floor(Math.random() * fonts.length)];
         setFont(font);
+      } else if (cmd === 'blog') {
+        setLayout('blog');
+      } else if (cmd === 'newsletter') {
+        setLayout('newsletter');
+      } else if (cmd === 'ebook') {
+        setLayout('ebook');
       }
       hideSlashSuggestions();
     }
@@ -1367,11 +1485,40 @@
           img.alt = 'Image';
           figure.appendChild(img);
           editor.appendChild(figure);
+          makeImageResizable(img);
           localStorage.setItem('omi-content', editor.innerHTML);
         };
         reader.readAsDataURL(file);
       };
       input.click();
+    }
+
+    function makeImageResizable(img) {
+      const handle = document.createElement('span');
+      handle.className = 'resize-handle';
+      const parent = img.parentElement;
+      parent.style.position = 'relative';
+      parent.appendChild(handle);
+      handle.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        let startX = e.clientX;
+        let startY = e.clientY;
+        let startW = img.offsetWidth;
+        let startH = img.offsetHeight;
+        function onMove(ev) {
+          const newW = startW + (ev.clientX - startX);
+          const newH = startH + (ev.clientY - startY);
+          img.style.width = newW + 'px';
+          img.style.height = newH + 'px';
+        }
+        function onUp() {
+          document.removeEventListener('mousemove', onMove);
+          document.removeEventListener('mouseup', onUp);
+          localStorage.setItem('omi-content', editor.innerHTML);
+        }
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+      });
     }
 
     const commandDescriptions = {
@@ -1389,6 +1536,9 @@
       "Ctrl+M": "Cycle theme" ,
       lines: 'Highlight lines',
       font: 'Random font'
+      ,blog: 'Blog layout'
+      ,newsletter: 'Newsletter layout'
+      ,ebook: 'eBook layout'
     };
 
     const helpBtn = document.getElementById('command-help-btn');
