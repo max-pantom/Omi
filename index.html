@@ -321,7 +321,11 @@
     }
     .resizable {
       resize: both;
+
+      overflow: hidden;
+
       overflow: auto;
+
     }
     .image-comment {
       font-size: 0.9rem;
@@ -697,6 +701,25 @@
         let idx = themeCycle.indexOf(current);
         let next = themeCycle[(idx + 1) % themeCycle.length];
         setTheme(next);
+      }
+    });
+
+    // Exit image or inline comments on Enter
+    editor.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.target.classList.contains('image-comment') || e.target.classList.contains('comment'))) {
+        e.preventDefault();
+        const container = e.target.closest('figure') || e.target;
+        const p = document.createElement('p');
+        p.innerHTML = '<br>';
+        container.after(p);
+        const range = document.createRange();
+        range.setStart(p, 0);
+        range.collapse(true);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        updateWordCount();
+        updatePlaceholder();
       }
     });
 
