@@ -57,7 +57,7 @@
     #editor::-webkit-scrollbar-thumb {
       background: rgba(0,0,0,0.15);
       border-radius: 4px;
-      transition: background 0.3s;
+      transition: background 0.8s;
     }
     #editor.scrolling::-webkit-scrollbar-thumb,
     #editor:hover::-webkit-scrollbar-thumb {
@@ -112,119 +112,6 @@
     body[data-theme="night"] a {
       color: #7ecbff;
       text-decoration-color: #7ecbff;
-    }
-    #commandBar {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) scale(0.96);
-      background: rgba(255, 255, 255, 0.93);
-      backdrop-filter: blur(22px) saturate(1.2);
-      box-shadow: 0 8px 32px 0 rgba(0,0,0,0.18), 0 0 32px 0 #aaf4, 0 0 0 2px #fff4;
-      border-radius: 16px;
-      padding: 1.4rem 1.3rem 1.1rem 1.3rem;
-      width: 350px;
-      opacity: 0;
-      transition: opacity 0.32s cubic-bezier(.4,0,.2,1), transform 0.32s cubic-bezier(.4,0,.2,1), box-shadow 0.32s cubic-bezier(.4,0,.2,1);
-      z-index: 9999;
-      display: block;
-      pointer-events: auto;
-      box-sizing: border-box;
-      filter: drop-shadow(0 2px 24px #aaf3) drop-shadow(0 0 32px #fff3);
-      will-change: opacity, transform, box-shadow;
-    }
-    #commandBar.show {
-      opacity: 1;
-      transform: translate(-50%, -50%) scale(1);
-      pointer-events: auto;
-      box-shadow: 0 12px 48px 0 rgba(0,0,0,0.22), 0 0 48px 0 #aaf6, 0 0 0 2px #fff6;
-    }
-    #commandBar.hidden {
-      display: none;
-    }
-    .command-bar-input-wrap {
-      position: relative;
-      margin-bottom: 0.7em;
-    }
-    #commandBarInput {
-      width: 100%;
-      font-size: 1.1em;
-      padding: 0.5em 0.7em;
-      border-radius: 7px;
-      border: none;
-      background: rgba(255,255,255,0.7);
-      box-shadow: 0 1px 4px #0001;
-      outline: none;
-      font-family: inherit;
-      color: #222;
-      letter-spacing: 0.01em;
-    }
-    body[data-theme="dark"] #commandBar, body[data-theme="night"] #commandBar {
-      background: rgba(24,24,27,0.98);
-      box-shadow: 0 8px 32px rgba(0,0,0,0.28), 0 0 0 2px #2228;
-    }
-    body[data-theme="dark"] #commandBarInput, body[data-theme="night"] #commandBarInput {
-      background: rgba(32,32,40,0.85);
-      color: #f7f7f8;
-    }
-    .type-caret {
-      position: absolute;
-      right: 1.1em;
-      top: 50%;
-      width: 2px;
-      height: 1.2em;
-      background: #222;
-      border-radius: 1px;
-      transform: translateY(-50%);
-      animation: type-caret-fade 1.1s cubic-bezier(.4,0,.2,1) infinite;
-      pointer-events: none;
-      opacity: 1;
-      will-change: opacity;
-    }
-    @keyframes type-caret-fade {
-      0% { opacity: 1; }
-      60% { opacity: 1; }
-      70% { opacity: 0; }
-      100% { opacity: 0; }
-    }
-    body[data-theme="dark"] .type-caret, body[data-theme="night"] .type-caret {
-      background: #fff;
-    }
-    #commandBarList {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-    }
-    #commandBarList li {
-      opacity: 0;
-      transform: translateY(24px) scale(0.98);
-      transition: opacity 0.32s cubic-bezier(.4,0,.2,1), transform 0.32s cubic-bezier(.4,0,.2,1);
-      font-size: 1.08em;
-      color: #555;
-      padding: 0.22em 0.3em;
-      border-radius: 6px;
-      margin-bottom: 0.13em;
-      background: none;
-      cursor: pointer;
-      will-change: opacity, transform;
-    }
-    #commandBar.show #commandBarList li {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-    #commandBar.show #commandBarList li:nth-child(1) { transition-delay: 0.08s; }
-    #commandBar.show #commandBarList li:nth-child(2) { transition-delay: 0.16s; }
-    #commandBar.show #commandBarList li:nth-child(3) { transition-delay: 0.24s; }
-    #commandBar.show #commandBarList li:nth-child(4) { transition-delay: 0.32s; }
-    #commandBar.show #commandBarList li:nth-child(5) { transition-delay: 0.40s; }
-    #commandBar.show #commandBarList li:nth-child(6) { transition-delay: 0.48s; }
-    #commandBarList li:hover, #commandBarList li:focus {
-      background: #f0f0f3;
-      color: #222;
-    }
-    body[data-theme="dark"] #commandBarList li:hover, body[data-theme="night"] #commandBarList li:hover {
-      background: #232329;
-      color: #fff;
     }
     /* Theme variables */
     :root {
@@ -381,6 +268,10 @@
       background: rgba(0,0,0,0.1);
       pointer-events: none;
       z-index: 10005;
+    #slashSuggestions{position:absolute;display:none;list-style:none;margin:0;padding:0.3em 0;background:var(--menu-bg,white);border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.15);z-index:10005;font-size:0.95em;}
+    #slashSuggestions li{padding:0.2em 0.8em;cursor:pointer;white-space:nowrap;}
+    #slashSuggestions li:hover{background:rgba(0,0,0,0.05);}
+    body[data-theme="dark"] #slashSuggestions li:hover,body[data-theme="night"] #slashSuggestions li:hover{background:#232329;color:#fff;}
     }
     body[data-theme="dark"].line-highlight::before,
     body[data-theme="night"].line-highlight::before {
@@ -391,19 +282,7 @@
 </head>
 <body>
   <div id="editor" contenteditable="true" spellcheck="true" aria-label="Omi" data-placeholder="Start writing..."></div>
-  <div id="commandBar" class="hidden">
-    <div class="command-bar-input-wrap">
-      <input id="commandBarInput" type="text" placeholder="Type a command..." autocomplete="off" />
-      <span class="type-caret"></span>
-    </div>
-    <ul id="commandBarList">
-      <li onclick="clearEditorContent()">Clear</li>
-      <li onclick="saveSnapshot()">Save</li>
-      <li onclick="loadSnapshots()">Load</li>
-      <li onclick="showHistory()">History</li>
-      <li onclick="copyContent()">Copy</li>
-    </ul>
-  </div>
+  <ul id="slashSuggestions" class="hidden"></ul>
   <div id="word-count"></div>
   <div id="timer-minimal" style="position:fixed;right:1vw;bottom:1.5vh;text-align:right;color:#aaa;font-size:0.95rem;font-family:inherit;pointer-events:none;user-select:none;letter-spacing:0.01em;z-index:10001;display:none;"></div>
   <div id="font-switcher" style="position:fixed;right:1vw;bottom:1.5vh;color:#aaa;font-size:0.95rem;font-family:inherit;user-select:none;cursor:pointer;z-index:10001;">Geist</div>
@@ -415,14 +294,15 @@
   <div id="link-tooltip" style="display:none;position:fixed;z-index:99999;"></div>
   <div id="copyDropdown"></div>
   <div id="toast"></div>
-  <div id="command-help-btn" style="position:fixed;right:1vw;bottom:6vh;color:#aaa;font-size:0.95rem;font-family:inherit;user-select:none;cursor:pointer;z-index:10001;">Commands</div>
-  <div id="command-help-modal" style="display:none;position:fixed;z-index:10002;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;color:#222;padding:1.5em 2em;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.18);font-family:inherit;min-width:260px;max-width:90vw;"></div>
+  <div id="command-help-btn" style="position:fixed;right:1vw;top:1.5vh;bottom:auto;color:#aaa;font-size:0.95rem;font-family:inherit;user-select:none;cursor:pointer;z-index:10001;">Commands</div>
+  <div id="command-help-modal" style="display:none;position:fixed;z-index:10002;top:5vh;right:1vw;left:auto;transform:none;background:#fff;color:#222;padding:1.5em 2em;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.18);font-family:inherit;min-width:260px;max-width:90vw;"></div>
   <script>
     const SNAPSHOT_KEY = "omi-snapshots"; // Define the key for storing snapshots
     const editor = document.getElementById('editor');
     const menu = document.getElementById('command-menu');
     let selectionRange = null;
     let themeCycle = ['light', 'dark', 'night'];
+    const slashSuggestions = document.getElementById("slashSuggestions");
     const fontSwitcher = document.getElementById('font-switcher');
     const fonts = ['Instrument Serif', 'Geist Mono', 'Monrope', 'PP Neue'];
     let currentFont = localStorage.getItem('omi-font') || 'Geist';
@@ -466,7 +346,7 @@
       clearTimeout(scrollTimeout);
       scrollTimeout = setTimeout(() => {
         editor.classList.remove('scrolling');
-      }, 800);
+      }, 1500);
     });
 
     // Save theme
@@ -486,56 +366,6 @@
     }
 
     // Command Bar JS
-    const commandBar = document.getElementById('commandBar');
-    const commandBarInput = document.getElementById('commandBarInput');
-    const commandBarList = document.getElementById('commandBarList');
-    let commandBarOpen = false;
-    function openCommandBar() {
-      if (commandBarOpen) return;
-      commandBar.classList.remove('hidden');
-      setTimeout(() => commandBar.classList.add('show'), 10);
-      commandBarInput.value = '';
-      commandBarInput.focus();
-      commandBarOpen = true;
-      // Animate list items
-      Array.from(commandBarList.children).forEach((li, i) => {
-        li.style.opacity = '0';
-        li.style.transform = 'translateY(32px) scale(0.98)';
-        setTimeout(() => {
-          li.style.opacity = '1';
-          li.style.transform = 'translateY(0) scale(1)';
-        }, 120 + i * 80);
-      });
-      // Select first item visually (future: add .selected class)
-      if (commandBarList.children.length > 0) {
-        commandBarList.children[0].classList.add('selected');
-      }
-    }
-    function closeCommandBar() {
-      if (!commandBarOpen) return;
-      commandBar.classList.remove('show');
-      setTimeout(() => commandBar.classList.add('hidden'), 320);
-      commandBarOpen = false;
-      // Remove selection
-      Array.from(commandBarList.children).forEach(li => li.classList.remove('selected'));
-      editor.focus();
-    }
-    document.addEventListener('keydown', (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        if (!commandBarOpen) openCommandBar();
-      } else if (e.key === 'Escape' && commandBarOpen) {
-        closeCommandBar();
-      }
-    });
-    // Close on click outside
-    document.addEventListener('mousedown', (e) => {
-      if (commandBarOpen && !commandBar.contains(e.target)) closeCommandBar();
-    });
-    // Enter closes bar
-    commandBarInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') closeCommandBar();
-    });
 
     // Replace [] with checkbox when typed
     editor.addEventListener('input', (e) => {
@@ -1197,17 +1027,14 @@
       console.log('Dropdown created and appended:', dropdown); // Debugging line
 
       // Position the dropdown
-      const commandBar = document.getElementById('commandBar');
-      const rect = commandBar.getBoundingClientRect();
+      const rect = getSelectionRect() || editor.getBoundingClientRect();
       dropdown.style.top = `${rect.bottom + window.scrollY}px`;
       dropdown.style.left = `${rect.left + window.scrollX}px`;
-
-      // Show the dropdown
       dropdown.style.display = 'block'; // Ensure dropdown is visible
 
       // Close dropdown on click outside
       document.addEventListener('click', (event) => {
-        if (!dropdown.contains(event.target) && event.target !== commandBar) {
+        if (!dropdown.contains(event.target) && event.target !== editor) {
           dropdown.remove(); // Remove dropdown if clicked outside
         }
       });
@@ -1253,14 +1080,13 @@
       historyDropdown.innerHTML = `<ul style="list-style: none; margin: 0; padding: 0;">${items}</ul>`;
 
       document.body.appendChild(historyDropdown);
-      const commandBar = document.getElementById('commandBar');
-      const rect = commandBar.getBoundingClientRect();
-      historyDropdown.style.top = `${rect.bottom + window.scrollY}px`;
-      historyDropdown.style.left = `${rect.left + window.scrollX}px`;
-      historyDropdown.style.display = 'block';
+        const rect = getSelectionRect() || editor.getBoundingClientRect();
+        historyDropdown.style.top = `${rect.bottom + window.scrollY}px`;
+        historyDropdown.style.left = `${rect.left + window.scrollX}px`;
+        historyDropdown.style.display = 'block';
 
       document.addEventListener('click', function handler(event) {
-        if (!historyDropdown.contains(event.target) && event.target !== commandBar) {
+        if (!historyDropdown.contains(event.target) && event.target !== editor) {
           historyDropdown.remove();
           document.removeEventListener('click', handler);
         }
@@ -1421,27 +1247,64 @@
       const text = editor.innerText;
       const lastSlashIndex = text.lastIndexOf('/');
 
-      if (lastSlashIndex !== -1) {
-        const commandInput = text.slice(lastSlashIndex);
-        if (!commandBarOpen) openCommandBar();
-        showCommandSuggestions(commandInput); // Show suggestions based on the command input
-      } else {
-        commandBarList.innerHTML = '';
-        if (commandBarOpen) closeCommandBar();
-      }
+        if (lastSlashIndex !== -1) {
+          const commandInput = text.slice(lastSlashIndex);
+          showCommandSuggestions(commandInput);
+        } else {
+          hideSlashSuggestions();
+        }
     });
 
     // Function to show command suggestions
     function showCommandSuggestions(input) {
-      const suggestions = ['clear', 'save', 'load', 'history', 'copy', 'image', 'zen', 'focus', 'timer', 'stats', 'typewriter', 'lines', 'font'];
-      const filteredSuggestions = suggestions.filter(cmd => cmd.startsWith(input.slice(1))); // Remove the leading '/'
+        const suggestions = ["clear","save","load","history","copy","image","zen","focus","timer","stats","typewriter","lines","font"];
+        const filteredSuggestions = suggestions.filter(cmd => cmd.startsWith(input.slice(1)));
 
-      // Update the command bar list with suggestions
-      commandBarList.innerHTML = filteredSuggestions.map(cmd => `<li onclick="executeCommand('${cmd}')">${cmd}</li>`).join('');
-      
-      // Debugging: Log the suggestions
-      console.log('Suggestions:', filteredSuggestions);
+        slashSuggestions.innerHTML = filteredSuggestions.map(cmd => `<li data-cmd="${cmd}">${cmd}</li>`).join("");
+        if (filteredSuggestions.length > 0) {
+          const rect = getSelectionRect() || editor.getBoundingClientRect();
+          slashSuggestions.style.left = `${rect.left}px`;
+          slashSuggestions.style.top = `${rect.bottom + 5}px`;
+          slashSuggestions.style.display = 'block';
+        } else {
+          slashSuggestions.style.display = 'none';
+        }
     }
+    function hideSlashSuggestions() {
+      slashSuggestions.style.display = "none";
+    }
+    slashSuggestions.addEventListener("mousedown", (e) => {
+      const li = e.target.closest("li");
+      if (!li) return;
+      e.preventDefault();
+      insertSlashCommand(li.dataset.cmd);
+    });
+    function insertSlashCommand(cmd) {
+      const sel = window.getSelection();
+      if (!sel.rangeCount) return;
+      const range = sel.getRangeAt(0);
+      const node = range.startContainer;
+      if (node.nodeType === 3) {
+        const text = node.textContent;
+        const lastSlash = text.lastIndexOf("/");
+        if (lastSlash !== -1) {
+          node.textContent = text.slice(0, lastSlash + 1) + cmd;
+          const newPos = lastSlash + 1 + cmd.length;
+          range.setStart(node, newPos);
+          range.collapse(true);
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }
+      }
+      hideSlashSuggestions();
+    }
+    editor.addEventListener("keydown", (e) => {
+      if (e.key === "Tab" && slashSuggestions.style.display === "block") {
+        e.preventDefault();
+        const first = slashSuggestions.querySelector("li");
+        if (first) insertSlashCommand(first.dataset.cmd);
+      }
+    });
 
     // Function to execute the command
     function executeCommand(cmd) {
@@ -1483,9 +1346,7 @@
         const font = fonts[Math.floor(Math.random() * fonts.length)];
         setFont(font);
       }
-      commandBarList.innerHTML = '';
-      commandBar.classList.remove('show');
-      setTimeout(() => commandBar.classList.add('hidden'), 320);
+      hideSlashSuggestions();
     }
 
     // Function to open the file explorer for image selection
@@ -1525,6 +1386,7 @@
       timer: 'Start a timer',
       stats: 'Show stats',
       typewriter: 'Typewriter mode',
+      "Ctrl+M": "Cycle theme" ,
       lines: 'Highlight lines',
       font: 'Random font'
     };
@@ -1538,7 +1400,8 @@
       }
       let html = '<h3 style="margin-top:0">Commands</h3><ul style="margin:0;padding-left:1em;">';
       for (const cmd in commandDescriptions) {
-        html += `<li><b>/${cmd}</b> - ${commandDescriptions[cmd]}</li>`;
+        const label = cmd.startsWith("Ctrl") ? cmd : "/" + cmd;
+        html += `<li><b>${label}</b> - ${commandDescriptions[cmd]}</li>`;
       }
       html += '</ul>';
       helpModal.innerHTML = html;
