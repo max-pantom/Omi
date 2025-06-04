@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Omi</title>
-  <!-- Use Geist font -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;700&display=swap">
+  <!-- Fonts -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;700&family=Instrument+Serif&family=Geist+Mono&family=Monrope&family=PP+Neue+Machina&display=swap">
   <style>
     html, body {
       height: 100%;
@@ -293,6 +293,34 @@
       outline: none; /* Remove default outline */
       background: #e0e0e0; /* Highlight on focus */
     }
+
+    /* Typewriter mode keeps caret vertically centered */
+    body.typewriter-mode {
+      scroll-behavior: auto;
+    }
+    body.typewriter-mode #editor {
+      overflow-y: auto;
+      padding-top: 40vh;
+      padding-bottom: 40vh;
+      box-sizing: border-box;
+    }
+
+    /* Current line highlight */
+    body.line-highlight::before {
+      content: '';
+      position: fixed;
+      left: 0;
+      width: 100vw;
+      height: var(--mac-caret-height, 1.4em);
+      top: calc(var(--mac-caret-y, -1000px) - 2px);
+      background: rgba(0,0,0,0.1);
+      pointer-events: none;
+      z-index: 10005;
+    }
+    body[data-theme="dark"].line-highlight::before,
+    body[data-theme="night"].line-highlight::before {
+      background: rgba(255,255,255,0.08);
+    }
   </style>
 </head>
 <body>
@@ -312,6 +340,7 @@
   </div>
   <div id="word-count"></div>
   <div id="timer-minimal" style="position:fixed;right:1vw;bottom:1.5vh;text-align:right;color:#aaa;font-size:0.95rem;font-family:inherit;pointer-events:none;user-select:none;letter-spacing:0.01em;z-index:10001;display:none;"></div>
+  <div id="font-switcher" style="position:fixed;right:1vw;bottom:4.5vh;color:#aaa;font-size:0.95rem;font-family:inherit;user-select:none;cursor:pointer;z-index:10001;">Geist</div>
   <div id="active-commands" style="position:fixed;left:1vw;bottom:1.5vh;z-index:10002;color:#aaa;font-size:0.95rem;font-family:inherit;user-select:none;pointer-events:none;text-align:left;"></div>
   <div id="stats-minimal" style="position:fixed;left:1vw;bottom:4.5vh;z-index:10003;color:#aaa;font-size:0.95rem;font-family:inherit;user-select:none;pointer-events:none;text-align:left;display:none;"></div>
   <div id="zen-overlay" style="display:none;position:fixed;z-index:99999;top:0;left:0;width:100vw;height:100vh;background:rgba(255,255,255,0.7);backdrop-filter:blur(2.5px);"></div>
@@ -326,6 +355,20 @@
     const menu = document.getElementById('command-menu');
     let selectionRange = null;
     let themeCycle = ['light', 'dark', 'night'];
+    const fontSwitcher = document.getElementById('font-switcher');
+    const fonts = ['Instrument Serif', 'Geist Mono', 'Monrope', 'PP Neue'];
+    let currentFont = localStorage.getItem('omi-font') || 'Geist';
+    function setFont(font) {
+      currentFont = font;
+      document.body.style.fontFamily = `'${font}', 'Inter', sans-serif`;
+      fontSwitcher.textContent = font;
+      localStorage.setItem('omi-font', font);
+    }
+    setFont(currentFont);
+    fontSwitcher.addEventListener('click', () => {
+      const font = fonts[Math.floor(Math.random() * fonts.length)];
+      setFont(font);
+    });
 
     // Load from localStorage
     editor.innerHTML = localStorage.getItem('omi-content') || '';
@@ -712,6 +755,21 @@
           document.body.classList.toggle('focus-mode');
           toggleActiveCommand('focus');
           removeSlashCommand('/focus'); // Remove the command from the editor
+        } else if (text.endsWith('/typewriter')) {
+          e.preventDefault();
+          document.body.classList.toggle('typewriter-mode');
+          toggleActiveCommand('typewriter');
+          removeSlashCommand('/typewriter');
+        } else if (text.endsWith('/lines')) {
+          e.preventDefault();
+          document.body.classList.toggle('line-highlight');
+          toggleActiveCommand('lines');
+          removeSlashCommand('/lines');
+        } else if (text.endsWith('/font')) {
+          e.preventDefault();
+          const font = fonts[Math.floor(Math.random() * fonts.length)];
+          setFont(font);
+          removeSlashCommand('/font');
         } else if (/\/zen$/.test(text)) {
           e.preventDefault();
           toggleZenMode();
@@ -937,6 +995,8 @@
       let labels = activeCommands.map(cmd => {
         if (cmd === 'zen') return 'Zen mode';
         if (cmd === 'focus') return 'Focus mode';
+        if (cmd === 'typewriter') return 'Typewriter';
+        if (cmd === 'lines') return 'Lines';
         if (cmd === 'timer') return timerActive && timerMins ? `Timer (${timerMins}m)` : 'Timer';
         if (cmd === 'stats') return 'Stats';
         return cmd;
@@ -975,6 +1035,21 @@
     editor.addEventListener('blur', () => editor.classList.remove('mac-caret-active'));
     document.addEventListener('scroll', updateMacCaret, true);
     window.addEventListener('resize', updateMacCaret);
+
+    function keepCaretCentered() {
+      if (!document.body.classList.contains('typewriter-mode')) return;
+      const sel = window.getSelection();
+      if (!sel.rangeCount) return;
+      const range = sel.getRangeAt(0).cloneRange();
+      range.collapse(true);
+      const rect = range.getClientRects()[0];
+      if (!rect) return;
+      const offset = rect.top - window.innerHeight / 2 + rect.height / 2;
+      window.scrollBy(0, offset);
+    }
+    editor.addEventListener('input', keepCaretCentered);
+    editor.addEventListener('keyup', keepCaretCentered);
+    editor.addEventListener('click', keepCaretCentered);
 
     function clearEditorContent() {
       editor.innerHTML = ''; // Clear the editor content
@@ -1248,7 +1323,7 @@
 
     // Function to show command suggestions
     function showCommandSuggestions(input) {
-      const suggestions = ['clear', 'save', 'load', 'history', 'copy', 'image', 'zen']; // Add 'zen' and any other commands
+      const suggestions = ['clear', 'save', 'load', 'history', 'copy', 'image', 'zen', 'focus', 'timer', 'stats', 'typewriter', 'lines', 'font'];
       const filteredSuggestions = suggestions.filter(cmd => cmd.startsWith(input.slice(1))); // Remove the leading '/'
 
       // Update the command bar list with suggestions
@@ -1260,14 +1335,47 @@
 
     // Function to execute the command
     function executeCommand(cmd) {
-      console.log('Executing command:', cmd); // Debugging: Log the command being executed
+      console.log('Executing command:', cmd);
       if (cmd === 'image') {
         openImageSelector();
-      } else {
-        // Handle other commands
-        // ... existing command handling logic ...
+      } else if (cmd === 'clear') {
+        clearEditorContent();
+      } else if (cmd === 'save') {
+        saveSnapshot();
+      } else if (cmd === 'load') {
+        loadSnapshots();
+      } else if (cmd === 'history') {
+        showHistory();
+      } else if (cmd === 'copy') {
+        handleCopyCommand();
+      } else if (cmd === 'zen') {
+        toggleZenMode();
+        toggleActiveCommand('zen');
+      } else if (cmd === 'focus') {
+        document.body.classList.toggle('focus-mode');
+        toggleActiveCommand('focus');
+      } else if (cmd === 'timer') {
+        const mins = parseInt(prompt('Minutes', '25'), 10);
+        if (!isNaN(mins) && mins > 0) {
+          startTimer(mins);
+          toggleActiveCommand('timer', true, mins);
+        }
+      } else if (cmd === 'stats') {
+        showStatsMinimal();
+        toggleActiveCommand('stats', true);
+      } else if (cmd === 'typewriter') {
+        document.body.classList.toggle('typewriter-mode');
+        toggleActiveCommand('typewriter');
+      } else if (cmd === 'lines') {
+        document.body.classList.toggle('line-highlight');
+        toggleActiveCommand('lines');
+      } else if (cmd === 'font') {
+        const font = fonts[Math.floor(Math.random() * fonts.length)];
+        setFont(font);
       }
-      commandBarList.innerHTML = ''; // Clear suggestions after executing the command
+      commandBarList.innerHTML = '';
+      commandBar.classList.remove('show');
+      setTimeout(() => commandBar.classList.add('hidden'), 320);
     }
 
     // Function to open the file explorer for image selection
