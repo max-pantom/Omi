@@ -703,6 +703,10 @@
           e.preventDefault();
           showHistory();
           removeSlashCommand('/history');
+        } else if (text.endsWith('/image')) {
+          e.preventDefault();
+          openImageSelector();
+          removeSlashCommand('/image');
         } else if (text.endsWith('/focus')) {
           e.preventDefault();
           document.body.classList.toggle('focus-mode');
