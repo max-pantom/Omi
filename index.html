@@ -41,17 +41,44 @@
       position: relative;
       overflow-y: auto;
       scrollbar-width: thin;
-      scrollbar-color: rgba(0,0,0,0.3) transparent;
+      scrollbar-color: rgba(0,0,0,0.15) transparent;
+    }
+    #editor.scrolling {
+      scrollbar-color: rgba(0,0,0,0.4) transparent;
     }
     #editor::-webkit-scrollbar {
       width: 8px;
     }
+    #editor::-webkit-scrollbar-button {
+      display: none;
+      width: 0;
+      height: 0;
+    }
     #editor::-webkit-scrollbar-thumb {
-      background: rgba(0,0,0,0.3);
+      background: rgba(0,0,0,0.15);
       border-radius: 4px;
+      transition: background 0.3s;
+    }
+    #editor.scrolling::-webkit-scrollbar-thumb,
+    #editor:hover::-webkit-scrollbar-thumb {
+      background: rgba(0,0,0,0.4);
+    }
+    body[data-theme="dark"] #editor,
+    body[data-theme="night"] #editor {
+      scrollbar-color: rgba(255,255,255,0.15) transparent;
+    }
+    body[data-theme="dark"] #editor.scrolling,
+    body[data-theme="night"] #editor.scrolling {
+      scrollbar-color: rgba(255,255,255,0.4) transparent;
     }
     body[data-theme="dark"] #editor::-webkit-scrollbar-thumb,
     body[data-theme="night"] #editor::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.15);
+    }
+    body[data-theme="dark"] #editor.scrolling::-webkit-scrollbar-thumb,
+    body[data-theme="night"] #editor.scrolling::-webkit-scrollbar-thumb,
+    body[data-theme="dark"] #editor:hover::-webkit-scrollbar-thumb,
+    body[data-theme="night"] #editor:hover::-webkit-scrollbar-thumb {
       background: rgba(255,255,255,0.4);
     }
     #editor.mac-caret-active::after {
@@ -336,18 +363,6 @@
       content: attr(data-placeholder);
       color: #aaa;
     }
-    .comment {
-      color: #888;
-      font-style: italic;
-    }
-    .comment:empty:before {
-      content: attr(data-placeholder);
-      color: #aaa;
-
-    /* Typewriter mode keeps caret vertically centered */
-    body.typewriter-mode {
-      scroll-behavior: auto;
-    }
     body.typewriter-mode #editor {
       overflow-y: auto;
       padding-top: 40vh;
@@ -400,6 +415,8 @@
   <div id="link-tooltip" style="display:none;position:fixed;z-index:99999;"></div>
   <div id="copyDropdown"></div>
   <div id="toast"></div>
+  <div id="command-help-btn" style="position:fixed;right:1vw;bottom:6vh;color:#aaa;font-size:0.95rem;font-family:inherit;user-select:none;cursor:pointer;z-index:10001;">Commands</div>
+  <div id="command-help-modal" style="display:none;position:fixed;z-index:10002;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;color:#222;padding:1.5em 2em;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.18);font-family:inherit;min-width:260px;max-width:90vw;"></div>
   <script>
     const SNAPSHOT_KEY = "omi-snapshots"; // Define the key for storing snapshots
     const editor = document.getElementById('editor');
@@ -429,6 +446,27 @@
     // Auto-save to localStorage
     editor.addEventListener('input', () => {
       localStorage.setItem('omi-content', editor.innerHTML);
+    });
+    // Persist checkbox state
+    editor.addEventListener('change', (e) => {
+      if (e.target.type === 'checkbox') {
+        if (e.target.checked) {
+          e.target.setAttribute('checked', '');
+        } else {
+          e.target.removeAttribute('checked');
+        }
+        localStorage.setItem('omi-content', editor.innerHTML);
+      }
+    });
+
+    // Dim scrollbar when idle
+    let scrollTimeout;
+    editor.addEventListener('scroll', () => {
+      editor.classList.add('scrolling');
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        editor.classList.remove('scrolling');
+      }, 800);
     });
 
     // Save theme
@@ -499,7 +537,7 @@
       if (e.key === 'Enter') closeCommandBar();
     });
 
-    // Replace [] with checkbox and // with comment when typed
+    // Replace [] with checkbox when typed
     editor.addEventListener('input', (e) => {
       // Only run if last 2 chars are []
       const sel = window.getSelection();
@@ -526,18 +564,6 @@
           sel.removeAllRanges();
           sel.addRange(range);
           // Save to localStorage
-          localStorage.setItem('omi-content', editor.innerHTML);
-        } else if (text === '//') {
-          const comment = document.createElement('span');
-          comment.className = 'comment';
-          comment.contentEditable = 'true';
-          comment.setAttribute('data-placeholder', 'Comment');
-          node.replaceWith(comment);
-          const newRange = document.createRange();
-          newRange.setStart(comment, 0);
-          newRange.collapse(true);
-          sel.removeAllRanges();
-          sel.addRange(newRange);
           localStorage.setItem('omi-content', editor.innerHTML);
         }
       }
@@ -704,9 +730,9 @@
       }
     });
 
-    // Exit image or inline comments on Enter
+    // Exit image comments on Enter
     editor.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && (e.target.classList.contains('image-comment') || e.target.classList.contains('comment'))) {
+      if (e.key === 'Enter' && e.target.classList.contains('image-comment')) {
         e.preventDefault();
         const container = e.target.closest('figure') || e.target;
         const p = document.createElement('p');
@@ -1394,12 +1420,14 @@
     editor.addEventListener('input', (e) => {
       const text = editor.innerText;
       const lastSlashIndex = text.lastIndexOf('/');
-      
+
       if (lastSlashIndex !== -1) {
         const commandInput = text.slice(lastSlashIndex);
+        if (!commandBarOpen) openCommandBar();
         showCommandSuggestions(commandInput); // Show suggestions based on the command input
       } else {
-        commandBarList.innerHTML = ''; // Clear suggestions if no slash is found
+        commandBarList.innerHTML = '';
+        if (commandBarOpen) closeCommandBar();
       }
     });
 
@@ -1461,7 +1489,7 @@
     }
 
     // Function to open the file explorer for image selection
-    function openImageSelector() {
+  function openImageSelector() {
       const input = document.createElement('input');
       input.type = 'file';
       input.accept = 'image/*';
@@ -1476,12 +1504,7 @@
           img.className = 'resizable';
           img.src = e.target.result;
           img.alt = 'Image';
-          const caption = document.createElement('figcaption');
-          caption.className = 'image-comment';
-          caption.contentEditable = 'true';
-          caption.setAttribute('data-placeholder', 'Add a comment...');
           figure.appendChild(img);
-          figure.appendChild(caption);
           editor.appendChild(figure);
           localStorage.setItem('omi-content', editor.innerHTML);
         };
@@ -1489,6 +1512,38 @@
       };
       input.click();
     }
+
+    const commandDescriptions = {
+      clear: 'Clear editor',
+      save: 'Save snapshot',
+      load: 'Load snapshot',
+      history: 'Show history',
+      copy: 'Copy content',
+      image: 'Insert image',
+      zen: 'Toggle zen mode',
+      focus: 'Toggle focus mode',
+      timer: 'Start a timer',
+      stats: 'Show stats',
+      typewriter: 'Typewriter mode',
+      lines: 'Highlight lines',
+      font: 'Random font'
+    };
+
+    const helpBtn = document.getElementById('command-help-btn');
+    const helpModal = document.getElementById('command-help-modal');
+    helpBtn.addEventListener('click', () => {
+      if (helpModal.style.display === 'block') {
+        helpModal.style.display = 'none';
+        return;
+      }
+      let html = '<h3 style="margin-top:0">Commands</h3><ul style="margin:0;padding-left:1em;">';
+      for (const cmd in commandDescriptions) {
+        html += `<li><b>/${cmd}</b> - ${commandDescriptions[cmd]}</li>`;
+      }
+      html += '</ul>';
+      helpModal.innerHTML = html;
+      helpModal.style.display = 'block';
+    });
   </script>
   
   <script>
