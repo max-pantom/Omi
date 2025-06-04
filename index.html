@@ -39,6 +39,20 @@
       transition: background 0.2s, color 0.2s;
       caret-color: transparent;
       position: relative;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(0,0,0,0.3) transparent;
+    }
+    #editor::-webkit-scrollbar {
+      width: 8px;
+    }
+    #editor::-webkit-scrollbar-thumb {
+      background: rgba(0,0,0,0.3);
+      border-radius: 4px;
+    }
+    body[data-theme="dark"] #editor::-webkit-scrollbar-thumb,
+    body[data-theme="night"] #editor::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.4);
     }
     #editor.mac-caret-active::after {
       content: '';
@@ -293,6 +307,36 @@
       outline: none; /* Remove default outline */
       background: #e0e0e0; /* Highlight on focus */
     }
+    .image-block {
+      display: inline-block;
+      text-align: center;
+      margin: 0.5em 0;
+    }
+    .image-block img.resizable {
+      max-width: 100%;
+      height: auto;
+      resize: both;
+      overflow: auto;
+      display: block;
+      margin: 0 auto;
+    }
+    .image-comment {
+      font-size: 0.9rem;
+      color: #666;
+      font-style: italic;
+    }
+    .image-comment:empty:before {
+      content: attr(data-placeholder);
+      color: #aaa;
+    }
+    .comment {
+      color: #888;
+      font-style: italic;
+    }
+    .comment:empty:before {
+      content: attr(data-placeholder);
+      color: #aaa;
+    }
   </style>
 </head>
 <body>
@@ -405,7 +449,7 @@
       if (e.key === 'Enter') closeCommandBar();
     });
 
-    // Replace [] with checkbox when typed
+    // Replace [] with checkbox and // with comment when typed
     editor.addEventListener('input', (e) => {
       // Only run if last 2 chars are []
       const sel = window.getSelection();
@@ -432,6 +476,18 @@
           sel.removeAllRanges();
           sel.addRange(range);
           // Save to localStorage
+          localStorage.setItem('omi-content', editor.innerHTML);
+        } else if (text === '//') {
+          const comment = document.createElement('span');
+          comment.className = 'comment';
+          comment.contentEditable = 'true';
+          comment.setAttribute('data-placeholder', 'Comment');
+          node.replaceWith(comment);
+          const newRange = document.createRange();
+          newRange.setStart(comment, 0);
+          newRange.collapse(true);
+          sel.removeAllRanges();
+          sel.addRange(newRange);
           localStorage.setItem('omi-content', editor.innerHTML);
         }
       }
@@ -703,6 +759,10 @@
           e.preventDefault();
           showHistory();
           removeSlashCommand('/history');
+        } else if (text.endsWith('/image')) {
+          e.preventDefault();
+          openImageSelector();
+          removeSlashCommand('/image');
         } else if (text.endsWith('/focus')) {
           e.preventDefault();
           document.body.classList.toggle('focus-mode');
@@ -1270,23 +1330,30 @@
     function openImageSelector() {
       const input = document.createElement('input');
       input.type = 'file';
-      input.accept = 'image/*'; // Accept only image files
+      input.accept = 'image/*';
       input.onchange = (event) => {
         const file = event.target.files[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            const img = document.createElement('img');
-            img.src = e.target.result; // Set the image source to the file's data URL
-            img.alt = 'Image';
-            img.style.maxWidth = '100%'; // Optional: make the image responsive
-            editor.appendChild(img);
-            localStorage.setItem('omi-content', editor.innerHTML); // Save to localStorage
-          };
-          reader.readAsDataURL(file); // Read the file as a data URL
-        }
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const figure = document.createElement('figure');
+          figure.className = 'image-block';
+          const img = document.createElement('img');
+          img.className = 'resizable';
+          img.src = e.target.result;
+          img.alt = 'Image';
+          const caption = document.createElement('figcaption');
+          caption.className = 'image-comment';
+          caption.contentEditable = 'true';
+          caption.setAttribute('data-placeholder', 'Add a comment...');
+          figure.appendChild(img);
+          figure.appendChild(caption);
+          editor.appendChild(figure);
+          localStorage.setItem('omi-content', editor.innerHTML);
+        };
+        reader.readAsDataURL(file);
       };
-      input.click(); // Programmatically click the input to open the file dialog
+      input.click();
     }
   </script>
   
