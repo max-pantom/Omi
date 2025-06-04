@@ -313,13 +313,15 @@
       text-align: center;
       margin: 0.5em 0;
     }
-    .image-block img.resizable {
+    .image-block img {
       max-width: 100%;
       height: auto;
-      resize: both;
-      overflow: auto;
       display: block;
       margin: 0 auto;
+    }
+    .resizable {
+      resize: both;
+      overflow: auto;
     }
     .image-comment {
       font-size: 0.9rem;
@@ -337,7 +339,6 @@
     .comment:empty:before {
       content: attr(data-placeholder);
       color: #aaa;
-=======
 
     /* Typewriter mode keeps caret vertically centered */
     body.typewriter-mode {
@@ -386,7 +387,7 @@
   </div>
   <div id="word-count"></div>
   <div id="timer-minimal" style="position:fixed;right:1vw;bottom:1.5vh;text-align:right;color:#aaa;font-size:0.95rem;font-family:inherit;pointer-events:none;user-select:none;letter-spacing:0.01em;z-index:10001;display:none;"></div>
-  <div id="font-switcher" style="position:fixed;right:1vw;bottom:4.5vh;color:#aaa;font-size:0.95rem;font-family:inherit;user-select:none;cursor:pointer;z-index:10001;">Geist</div>
+  <div id="font-switcher" style="position:fixed;right:1vw;bottom:1.5vh;color:#aaa;font-size:0.95rem;font-family:inherit;user-select:none;cursor:pointer;z-index:10001;">Geist</div>
   <div id="active-commands" style="position:fixed;left:1vw;bottom:1.5vh;z-index:10002;color:#aaa;font-size:0.95rem;font-family:inherit;user-select:none;pointer-events:none;text-align:left;"></div>
   <div id="stats-minimal" style="position:fixed;left:1vw;bottom:4.5vh;z-index:10003;color:#aaa;font-size:0.95rem;font-family:inherit;user-select:none;pointer-events:none;text-align:left;display:none;"></div>
   <div id="zen-overlay" style="display:none;position:fixed;z-index:99999;top:0;left:0;width:100vw;height:100vh;background:rgba(255,255,255,0.7);backdrop-filter:blur(2.5px);"></div>
@@ -1447,7 +1448,7 @@
         const reader = new FileReader();
         reader.onload = (e) => {
           const figure = document.createElement('figure');
-          figure.className = 'image-block';
+          figure.className = 'image-block resizable';
           const img = document.createElement('img');
           img.className = 'resizable';
           img.src = e.target.result;
