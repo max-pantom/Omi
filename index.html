@@ -747,83 +747,86 @@
     editor.addEventListener('keydown', async (e) => {
       if (e.key === 'Enter') {
         const text = editor.innerText.trim();
-        
-        if (text.endsWith('/clear')) {
-          e.preventDefault(); // Prevent the default action
-          clearEditorContent(); // Call the function to clear the editor content
-          removeSlashCommand('/clear'); // Remove the command from the editor
-        } else if (text.endsWith('/clearx')) {
-          e.preventDefault(); // Prevent the default action
-          clearAll(); // Call the function to clear all content and reset
-          removeSlashCommand('/clearx'); // Remove the command from the editor
-        } else if (text.endsWith('/copy')) {
+        const cmdMatch = text.match(/\/(\w+)(?:\s+(.*))?$/);
+        if (cmdMatch) {
           e.preventDefault();
-          handleCopyCommand(); // Call the function to copy content
-          removeSlashCommand('/copy'); // Remove the command from the editor
-        } else if (text.endsWith('/load')) {
-          e.preventDefault();
-          loadSnapshots(); // Call the function to load snapshots
-          removeSlashCommand('/load'); // Remove the command from the editor
-        } else if (text.endsWith('/save')) {
-          e.preventDefault();
-          saveSnapshot(); // Call the function to save a snapshot
-          removeSlashCommand('/save'); // Remove the command from the editor
-        } else if (text.endsWith('/export')) {
-          e.preventDefault();
-          exportContent(); // Call the function to export content
-          removeSlashCommand('/export'); // Remove the command from the editor
-        } else if (text.endsWith('/history')) {
-          e.preventDefault();
-          showHistory();
-          removeSlashCommand('/history');
-        } else if (text.endsWith('/image')) {
-          e.preventDefault();
-          openImageSelector();
-          removeSlashCommand('/image');
-        } else if (text.endsWith('/focus')) {
-          e.preventDefault();
-          document.body.classList.toggle('focus-mode');
-          toggleActiveCommand('focus');
-          removeSlashCommand('/focus'); // Remove the command from the editor
-        } else if (text.endsWith('/typewriter')) {
-          e.preventDefault();
-          document.body.classList.toggle('typewriter-mode');
-          toggleActiveCommand('typewriter');
-          removeSlashCommand('/typewriter');
-        } else if (text.endsWith('/lines')) {
-          e.preventDefault();
-          document.body.classList.toggle('line-highlight');
-          toggleActiveCommand('lines');
-          removeSlashCommand('/lines');
-        } else if (text.endsWith('/font')) {
-          e.preventDefault();
-          const font = fonts[Math.floor(Math.random() * fonts.length)];
-          setFont(font);
-          removeSlashCommand('/font');
-        } else if (/\/zen$/.test(text)) {
-          e.preventDefault();
-          toggleZenMode();
-          toggleActiveCommand('zen');
-          removeSlashCommand('/zen'); // Remove the command from the editor
-        } else if (/\/timer(\s+\d+|\s+stop|\s+0)?$/.test(text)) {
-          e.preventDefault();
-          const match = text.match(/\/timer(?:\s+(\d+|stop|0))?$/);
-          if (match) {
-            if (match[1] === 'stop' || match[1] === '0') {
-              stopTimer();
-              toggleActiveCommand('timer', false);
-            } else {
-              let mins = parseInt(match[1] || '25', 10);
-              if (!isNaN(mins) && mins > 0) startTimer(mins);
-              toggleActiveCommand('timer', true, mins);
-            }
+          const cmd = cmdMatch[1];
+          const arg = cmdMatch[2];
+          switch (cmd) {
+            case 'clear':
+              clearEditorContent();
+              removeSlashCommand('/clear');
+              break;
+            case 'clearx':
+              clearAll();
+              removeSlashCommand('/clearx');
+              break;
+            case 'copy':
+              handleCopyCommand();
+              removeSlashCommand('/copy');
+              break;
+            case 'load':
+              loadSnapshots();
+              removeSlashCommand('/load');
+              break;
+            case 'save':
+              saveSnapshot();
+              removeSlashCommand('/save');
+              break;
+            case 'export':
+              exportContent();
+              removeSlashCommand('/export');
+              break;
+            case 'history':
+              showHistory();
+              removeSlashCommand('/history');
+              break;
+            case 'image':
+              openImageSelector();
+              removeSlashCommand('/image');
+              break;
+            case 'focus':
+              document.body.classList.toggle('focus-mode');
+              toggleActiveCommand('focus');
+              removeSlashCommand('/focus');
+              break;
+            case 'typewriter':
+              document.body.classList.toggle('typewriter-mode');
+              toggleActiveCommand('typewriter');
+              removeSlashCommand('/typewriter');
+              break;
+            case 'lines':
+              document.body.classList.toggle('line-highlight');
+              toggleActiveCommand('lines');
+              removeSlashCommand('/lines');
+              break;
+            case 'font':
+              const font = fonts[Math.floor(Math.random() * fonts.length)];
+              setFont(font);
+              removeSlashCommand('/font');
+              break;
+            case 'zen':
+              toggleZenMode();
+              toggleActiveCommand('zen');
+              removeSlashCommand('/zen');
+              break;
+            case 'timer':
+              if (arg === 'stop' || arg === '0') {
+                stopTimer();
+                toggleActiveCommand('timer', false);
+              } else {
+                let mins = parseInt(arg || '25', 10);
+                if (!isNaN(mins) && mins > 0) startTimer(mins);
+                toggleActiveCommand('timer', true, mins);
+              }
+              removeSlashCommand(/\/timer(\s+\d+|\s+stop|\s+0)?$/);
+              break;
+            case 'stats':
+              showStatsMinimal();
+              toggleActiveCommand('stats', true);
+              removeSlashCommand('/stats');
+              break;
           }
-          removeSlashCommand(/\/timer(\s+\d+|\s+stop|\s+0)?$/); // Remove the command from the editor
-        } else if (/\/stats$/.test(text)) {
-          e.preventDefault();
-          showStatsMinimal();
-          toggleActiveCommand('stats', true);
-          removeSlashCommand('/stats'); // Remove the command from the editor
         }
       } else if (dropdown.style.display === "block") {
         if (e.key === 'ArrowDown') {
@@ -932,9 +935,20 @@
       document.getElementById('word-count').style.display = isZen ? 'none' : '';
       timerMinimal.style.display = isZen && timerActive ? 'block' : (timerActive ? 'block' : 'none');
       statsMinimal.style.display = 'none';
+      document.getElementById('active-commands').style.display = isZen ? 'none' : '';
+      document.getElementById('font-switcher').style.display = isZen ? 'none' : '';
+      document.getElementById('command-help-btn').style.display = isZen ? 'none' : '';
+      document.getElementById('command-help-modal').style.display = 'none';
       if (isZen) {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        }
         editor.blur();
         setTimeout(() => editor.focus(), 100);
+      } else {
+        if (document.fullscreenElement) {
+          document.exitFullscreen().catch(() => {});
+        }
       }
     }
     // Exit Zen on Escape
@@ -942,6 +956,10 @@
       if (e.key === 'Escape' && document.body.classList.contains('zen-mode')) {
         toggleZenMode();
         toggleActiveCommand('zen', false);
+      }
+      if (e.key === 'F11') {
+        e.preventDefault();
+        toggleZenMode();
       }
     });
 
@@ -1534,6 +1552,7 @@
       stats: 'Show stats',
       typewriter: 'Typewriter mode',
       "Ctrl+M": "Cycle theme" ,
+      F11: 'Zen mode',
       lines: 'Highlight lines',
       font: 'Random font'
       ,blog: 'Blog layout'
@@ -1559,10 +1578,7 @@
     });
   </script>
   
-  <script>
-    window.SOLA_SITE_ID = "12u";
-  </script>
-  <script src="https://sola-three.vercel.app/api/sola.js" defer></script>
+
   
 </body>
 </html> 
