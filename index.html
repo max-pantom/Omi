@@ -251,6 +251,7 @@
       height: 12px;
       background: rgba(0,0,0,0.4);
       border-radius: 2px;
+      user-select: none;
     }
     .resize-handle[data-dir="nw"] { left: 0; top: 0; cursor: nwse-resize; }
     .resize-handle[data-dir="ne"] { right: 0; top: 0; cursor: nesw-resize; }
@@ -520,35 +521,35 @@
     }
 
 
-    // Inline Markdown support: **bold** and *italic*
+    // Inline Markdown support: **bold**, *italic*, ~~strike~~, __underline__, `code`
     function autoMarkdown(container) {
       function processNode(node) {
         if (node.nodeType === 3) { // text node
           let text = node.textContent;
-          // Bold: **text**
           let changed = false;
-          text = text.replace(/\*\*([^*]+)\*\*/g, (m, p1) => {
-            changed = true;
-            return `\u0000b\u0000${p1}\u0000/b\u0000`;
-          });
-          // Italic: *text*
-          text = text.replace(/\*([^*]+)\*/g, (m, p1) => {
-            changed = true;
-            return `\u0000i\u0000${p1}\u0000/i\u0000`;
+          const rules = [
+            {regex: /\*\*([^*]+)\*\*/g, tag: 'b'},
+            {regex: /\*([^*]+)\*/g, tag: 'i'},
+            {regex: /~~([^~]+)~~/g, tag: 'del'},
+            {regex: /__([^_]+)__/g, tag: 'u'},
+            {regex: /`([^`]+)`/g, tag: 'code'}
+          ];
+          rules.forEach(r => {
+            text = text.replace(r.regex, (m, p1) => {
+              changed = true;
+              return `\u0000${r.tag}\u0000${p1}\u0000/${r.tag}\u0000`;
+            });
           });
           if (changed) {
             // Replace with HTML nodes
             let frag = document.createDocumentFragment();
-            let parts = text.split(/(\u0000[bi]\u0000|\u0000\/[bi]\u0000)/);
+            let parts = text.split(/\u0000/).filter(Boolean);
             let stack = [];
             for (let part of parts) {
-              if (part === '\u0000b\u0000') {
-                let b = document.createElement('b');
-                stack.push(b);
-              } else if (part === '\u0000i\u0000') {
-                let i = document.createElement('i');
-                stack.push(i);
-              } else if (part === '\u0000/b\u0000' || part === '\u0000/i\u0000') {
+              if (['b','i','del','u','code'].includes(part)) {
+                let el = document.createElement(part);
+                stack.push(el);
+              } else if (part.startsWith('/')) {
                 let el = stack.pop();
                 if (stack.length > 0) {
                   stack[stack.length - 1].appendChild(el);
@@ -565,7 +566,7 @@
             }
             node.replaceWith(frag);
           }
-        } else if (node.nodeType === 1 && node.childNodes && node.tagName !== 'B' && node.tagName !== 'I' && node.tagName !== 'CODE') {
+        } else if (node.nodeType === 1 && node.childNodes && !['B','I','DEL','U','CODE'].includes(node.tagName)) {
           for (let i = node.childNodes.length - 1; i >= 0; i--) {
             processNode(node.childNodes[i]);
           }
@@ -1335,7 +1336,12 @@
     function toMarkdown(html) {
       return html
         .replace(/<strong>(.*?)<\/strong>/g, '**$1**')
+        .replace(/<b>(.*?)<\/b>/g, '**$1**')
         .replace(/<em>(.*?)<\/em>/g, '*$1*')
+        .replace(/<i>(.*?)<\/i>/g, '*$1*')
+        .replace(/<del>(.*?)<\/del>/g, '~~$1~~')
+        .replace(/<u>(.*?)<\/u>/g, '__$1__')
+        .replace(/<code>(.*?)<\/code>/g, '`$1`')
         .replace(/<br\s*\/?>/g, '\n')
         .replace(/<\/p><p>/g, '\n\n')
         .replace(/<\/?[^>]+(>|$)/g, ''); // strip all other HTML
@@ -1580,6 +1586,8 @@
     function makeImageResizable(el) {
       const parent = el.parentElement;
       parent.style.position = 'relative';
+      // remove old handles if any
+      parent.querySelectorAll('.resize-handle').forEach(h => h.remove());
       const dirs = ['nw','ne','sw','se'];
       dirs.forEach(dir => {
         const handle = document.createElement('span');
@@ -1601,8 +1609,14 @@
             if (dir.includes('w')) newW -= dx;
             if (dir.includes('s')) newH += dy;
             if (dir.includes('n')) newH -= dy;
-            if (newW > 20) el.style.width = newW + 'px';
-            if (newH > 20) el.style.height = newH + 'px';
+            if (newW > 20) {
+              el.style.width = newW + 'px';
+              parent.style.width = newW + 'px';
+            }
+            if (newH > 20) {
+              el.style.height = newH + 'px';
+              parent.style.height = newH + 'px';
+            }
           }
           function onUp() {
             document.removeEventListener('mousemove', onMove);
