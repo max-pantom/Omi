@@ -233,21 +233,29 @@
       display: block;
       margin: 0 auto;
     }
+    .pdf-block {
+      margin: 0.5em 0;
+      display: block;
+    }
+    .pdf-block embed {
+      width: 100%;
+      height: 500px;
+    }
     .resizable {
-      resize: both;
       display: inline-block;
-      overflow: auto;
+      position: relative;
     }
     .resize-handle {
       position: absolute;
       width: 12px;
       height: 12px;
-      right: 0;
-      bottom: 0;
       background: rgba(0,0,0,0.4);
-      cursor: nwse-resize;
       border-radius: 2px;
     }
+    .resize-handle[data-dir="nw"] { left: 0; top: 0; cursor: nwse-resize; }
+    .resize-handle[data-dir="ne"] { right: 0; top: 0; cursor: nesw-resize; }
+    .resize-handle[data-dir="sw"] { left: 0; bottom: 0; cursor: nesw-resize; }
+    .resize-handle[data-dir="se"] { right: 0; bottom: 0; cursor: nwse-resize; }
     .image-comment {
       font-size: 0.9rem;
       color: #666;
@@ -372,7 +380,7 @@
 
     // Load from localStorage
     editor.innerHTML = localStorage.getItem('omi-content') || '';
-    editor.querySelectorAll('img.resizable').forEach(makeImageResizable);
+    editor.querySelectorAll('img.resizable, embed.resizable').forEach(makeImageResizable);
     autoLink(editor);
     const savedTheme = localStorage.getItem('omi-theme') || 'light';
     document.body.setAttribute('data-theme', savedTheme);
@@ -390,6 +398,19 @@
           e.target.removeAttribute('checked');
         }
         localStorage.setItem('omi-content', editor.innerHTML);
+      }
+    });
+
+    // Drag & drop for images and PDFs
+    editor.addEventListener('dragover', e => e.preventDefault());
+    editor.addEventListener('drop', e => {
+      e.preventDefault();
+      const file = e.dataTransfer.files[0];
+      if (!file) return;
+      if (file.type.startsWith('image/')) {
+        insertImageFile(file);
+      } else if (file.type === 'application/pdf') {
+        insertPdfFile(file);
       }
     });
 
@@ -455,6 +476,7 @@
       autoLink(editor);
       // Inline Markdown as you type
       autoMarkdown(editor);
+      autoHeading();
       // Placeholder
       updatePlaceholder();
     });
@@ -550,6 +572,32 @@
         }
       }
       processNode(container);
+    }
+
+    // Convert '# ' to headings on the current line
+    function autoHeading() {
+      const sel = window.getSelection();
+      if (!sel.rangeCount) return;
+      const range = sel.getRangeAt(0);
+      let block = range.startContainer;
+      while (block && block !== editor && !/^(P|DIV|H[1-6])$/.test(block.nodeName)) {
+        block = block.parentElement;
+      }
+      if (!block || block === editor) return;
+      const text = block.innerText || block.textContent;
+      const match = text.match(/^(#{1,6})\s/);
+      if (match) {
+        const level = match[1].length;
+        const content = text.slice(level + 1);
+        const h = document.createElement('h' + level);
+        h.innerHTML = content || '<br>';
+        block.replaceWith(h);
+        const newRange = document.createRange();
+        newRange.setStart(h, 0);
+        newRange.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(newRange);
+      }
     }
 
     // Placeholder logic
@@ -748,6 +796,10 @@
               openImageSelector();
               removeSlashCommand('/image');
               break;
+            case 'pdf':
+              openPdfSelector();
+              removeSlashCommand('/pdf');
+              break;
             case 'focus':
               document.body.classList.toggle('focus-mode');
               toggleActiveCommand('focus');
@@ -887,8 +939,8 @@
     document.head.appendChild(style);
 
     // Also auto-link and auto-markdown on paste and blur
-    editor.addEventListener('paste', () => setTimeout(() => { autoLink(editor); autoMarkdown(editor); }, 0));
-    editor.addEventListener('blur', () => { autoLink(editor); autoMarkdown(editor); });
+    editor.addEventListener('paste', () => setTimeout(() => { autoLink(editor); autoMarkdown(editor); autoHeading(); }, 0));
+    editor.addEventListener('blur', () => { autoLink(editor); autoMarkdown(editor); autoHeading(); });
 
     // Zen Mode
     function toggleZenMode() {
@@ -1350,7 +1402,7 @@
 
     // Function to show command suggestions
     function showCommandSuggestions(input) {
-        const suggestions = ["clear","save","load","history","copy","image","zen","focus","timer","stats","typewriter","lines","font","blog","newsletter","ebook"];
+        const suggestions = ["clear","save","load","history","copy","image","pdf","zen","focus","timer","stats","typewriter","lines","font","blog","newsletter","ebook"];
         const filteredSuggestions = suggestions.filter(cmd => cmd.startsWith(input.slice(1)));
 
         slashSuggestions.innerHTML = filteredSuggestions.map(cmd => `<li data-cmd="${cmd}">${cmd}</li>`).join("");
@@ -1404,6 +1456,8 @@
       console.log('Executing command:', cmd);
       if (cmd === 'image') {
         openImageSelector();
+      } else if (cmd === 'pdf') {
+        openPdfSelector();
       } else if (cmd === 'clear') {
         clearEditorContent();
       } else if (cmd === 'save') {
@@ -1455,50 +1509,109 @@
       input.accept = 'image/*';
       input.onchange = (event) => {
         const file = event.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const figure = document.createElement('figure');
-          figure.className = 'image-block resizable';
-          const img = document.createElement('img');
-          img.className = 'resizable';
-          img.src = e.target.result;
-          img.alt = 'Image';
-          figure.appendChild(img);
-          editor.appendChild(figure);
-          makeImageResizable(img);
-          localStorage.setItem('omi-content', editor.innerHTML);
-        };
-        reader.readAsDataURL(file);
+        if (file) insertImageFile(file);
       };
       input.click();
     }
 
-    function makeImageResizable(img) {
-      const handle = document.createElement('span');
-      handle.className = 'resize-handle';
-      const parent = img.parentElement;
+    function insertImageFile(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const figure = document.createElement('figure');
+        figure.className = 'image-block resizable';
+        const img = document.createElement('img');
+        img.className = 'resizable';
+        img.src = e.target.result;
+        img.alt = 'Image';
+        figure.appendChild(img);
+        editor.appendChild(figure);
+        const p = document.createElement('p');
+        p.innerHTML = '<br>';
+        figure.after(p);
+        const range = document.createRange();
+        range.setStart(p, 0);
+        range.collapse(true);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        makeImageResizable(img);
+        localStorage.setItem('omi-content', editor.innerHTML);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function openPdfSelector() {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'application/pdf';
+      input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (file) insertPdfFile(file);
+      };
+      input.click();
+    }
+
+    function insertPdfFile(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const div = document.createElement('div');
+        div.className = 'pdf-block resizable';
+        const embed = document.createElement('embed');
+        embed.className = 'resizable';
+        embed.src = e.target.result;
+        embed.type = 'application/pdf';
+        div.appendChild(embed);
+        editor.appendChild(div);
+        const p = document.createElement('p');
+        p.innerHTML = '<br>';
+        div.after(p);
+        const range = document.createRange();
+        range.setStart(p, 0);
+        range.collapse(true);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        makeImageResizable(embed);
+        localStorage.setItem('omi-content', editor.innerHTML);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function makeImageResizable(el) {
+      const parent = el.parentElement;
       parent.style.position = 'relative';
-      parent.appendChild(handle);
-      handle.addEventListener('mousedown', (e) => {
-        e.preventDefault();
-        let startX = e.clientX;
-        let startY = e.clientY;
-        let startW = img.offsetWidth;
-        let startH = img.offsetHeight;
-        function onMove(ev) {
-          const newW = startW + (ev.clientX - startX);
-          const newH = startH + (ev.clientY - startY);
-          img.style.width = newW + 'px';
-          img.style.height = newH + 'px';
-        }
-        function onUp() {
-          document.removeEventListener('mousemove', onMove);
-          document.removeEventListener('mouseup', onUp);
-          localStorage.setItem('omi-content', editor.innerHTML);
-        }
-        document.addEventListener('mousemove', onMove);
-        document.addEventListener('mouseup', onUp);
+      const dirs = ['nw','ne','sw','se'];
+      dirs.forEach(dir => {
+        const handle = document.createElement('span');
+        handle.className = 'resize-handle';
+        handle.dataset.dir = dir;
+        parent.appendChild(handle);
+        handle.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          let startX = e.clientX;
+          let startY = e.clientY;
+          let startW = el.offsetWidth;
+          let startH = el.offsetHeight;
+          function onMove(ev) {
+            let dx = ev.clientX - startX;
+            let dy = ev.clientY - startY;
+            let newW = startW;
+            let newH = startH;
+            if (dir.includes('e')) newW += dx;
+            if (dir.includes('w')) newW -= dx;
+            if (dir.includes('s')) newH += dy;
+            if (dir.includes('n')) newH -= dy;
+            if (newW > 20) el.style.width = newW + 'px';
+            if (newH > 20) el.style.height = newH + 'px';
+          }
+          function onUp() {
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup', onUp);
+            localStorage.setItem('omi-content', editor.innerHTML);
+          }
+          document.addEventListener('mousemove', onMove);
+          document.addEventListener('mouseup', onUp);
+        });
       });
     }
 
@@ -1509,6 +1622,7 @@
       history: 'Show history',
       copy: 'Copy content',
       image: 'Insert image',
+      pdf: 'Insert PDF',
       zen: 'Toggle zen mode',
       focus: 'Toggle focus mode',
       timer: 'Start a timer',
