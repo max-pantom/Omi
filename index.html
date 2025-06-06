@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Omi</title>
-  <meta name="description" content="Omi - minimal writing tool">
+  <meta name="description" content="Omi - write without visual distractions">
   <meta name="theme-color" content="#ffffff">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <!-- Fonts -->
@@ -1071,7 +1071,7 @@
       activeCommandsDiv.textContent = labels.join('  •  ');
     }
 
-    // macOS-style caret logic
+    // Function to update the caret position
     function updateMacCaret() {
       if (document.activeElement !== editor) {
         editor.classList.remove('mac-caret-active');
@@ -1093,15 +1093,20 @@
       editor.style.setProperty('--mac-caret-x', rect.left + 'px');
       editor.style.setProperty('--mac-caret-y', rect.top + 'px');
       editor.style.setProperty('--mac-caret-height', rect.height + 'px');
-      // Color is handled by CSS
     }
+
+    // Focus the editor and show the caret on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      editor.focus(); // Focus on the editor to show the caret
+      updateMacCaret(); // Update the caret position
+    });
+
+    // Update the caret position on input and key events
+    editor.addEventListener('input', updateMacCaret);
     editor.addEventListener('keyup', updateMacCaret);
     editor.addEventListener('mouseup', updateMacCaret);
-    editor.addEventListener('input', updateMacCaret);
     editor.addEventListener('focus', updateMacCaret);
     editor.addEventListener('blur', () => editor.classList.remove('mac-caret-active'));
-    document.addEventListener('scroll', updateMacCaret, true);
-    window.addEventListener('resize', updateMacCaret);
 
     const caretRippleEl = document.getElementById('caretRipple');
     let rippleTimer;
