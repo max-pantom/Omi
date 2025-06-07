@@ -96,14 +96,22 @@
       pointer-events: none;
       left: var(--mac-caret-x, -1000px);
       top: var(--mac-caret-y, -1000px);
-      animation: mac-caret-blink 1.1s cubic-bezier(.4,0,.2,1) infinite;
+      animation: var(--caret-animation, mac-caret-blink 1.1s cubic-bezier(.4,0,.2,1) infinite);
       opacity: 1;
       will-change: opacity, left, top, height;
+    }
+    #editor.mac-caret-active.slow-blink::after {
+      animation: mac-caret-slow-blink 2.4s cubic-bezier(.4,0,.2,1) infinite;
     }
     @keyframes mac-caret-blink {
       0% { opacity: 1; }
       60% { opacity: 1; }
       70% { opacity: 0; }
+      100% { opacity: 0; }
+    }
+    @keyframes mac-caret-slow-blink {
+      0% { opacity: 1; }
+      85% { opacity: 1; }
       100% { opacity: 0; }
     }
     body[data-theme="dark"] #editor.mac-caret-active::after,
@@ -306,6 +314,15 @@
     .ripple-animate {
       animation: ripple 0.8s ease-out;
     }
+
+    .memory-label {
+      opacity: 0;
+      transition: opacity 0.2s;
+      pointer-events: auto;
+    }
+    .memory-label:hover {
+      opacity: 0.4;
+    }
     body.typewriter-mode #editor {
       overflow-y: auto;
       padding-top: 40vh;
@@ -386,6 +403,9 @@
     editor.innerHTML = localStorage.getItem('omi-content') || '';
     editor.querySelectorAll('img.resizable, embed.resizable').forEach(makeImageResizable);
     autoLink(editor);
+    autoMarkdown(editor);
+    autoHeading();
+    autoMemoryLabels(editor);
     const savedTheme = localStorage.getItem('omi-theme') || 'light';
     document.body.setAttribute('data-theme', savedTheme);
 
@@ -481,6 +501,7 @@
       // Inline Markdown as you type
       autoMarkdown(editor);
       autoHeading();
+      autoMemoryLabels(editor);
       // Placeholder
       updatePlaceholder();
     });
@@ -602,6 +623,40 @@
         sel.removeAllRanges();
         sel.addRange(newRange);
       }
+    }
+
+    // Convert [[label]] to invisible memory labels
+    function autoMemoryLabels(container) {
+      const labelRegex = /\[\[([^\]]+)\]\]/g;
+      function processNode(node) {
+        if (node.nodeType === 3) {
+          let text = node.textContent;
+          if (labelRegex.test(text)) {
+            const frag = document.createDocumentFragment();
+            let last = 0;
+            text.replace(labelRegex, (m, label, offset) => {
+              if (offset > last) {
+                frag.appendChild(document.createTextNode(text.slice(last, offset)));
+              }
+              const span = document.createElement('span');
+              span.className = 'memory-label';
+              span.dataset.label = label;
+              span.textContent = label;
+              frag.appendChild(span);
+              last = offset + m.length;
+            });
+            if (last < text.length) {
+              frag.appendChild(document.createTextNode(text.slice(last)));
+            }
+            node.replaceWith(frag);
+          }
+        } else if (node.nodeType === 1 && node.childNodes) {
+          for (let i = node.childNodes.length - 1; i >= 0; i--) {
+            processNode(node.childNodes[i]);
+          }
+        }
+      }
+      processNode(container);
     }
 
     // Placeholder logic
@@ -943,8 +998,8 @@
     document.head.appendChild(style);
 
     // Also auto-link and auto-markdown on paste and blur
-    editor.addEventListener('paste', () => setTimeout(() => { autoLink(editor); autoMarkdown(editor); autoHeading(); }, 0));
-    editor.addEventListener('blur', () => { autoLink(editor); autoMarkdown(editor); autoHeading(); });
+    editor.addEventListener('paste', () => setTimeout(() => { autoLink(editor); autoMarkdown(editor); autoHeading(); autoMemoryLabels(editor); }, 0));
+    editor.addEventListener('blur', () => { autoLink(editor); autoMarkdown(editor); autoHeading(); autoMemoryLabels(editor); });
 
     // Zen Mode
     function toggleZenMode() {
@@ -1098,7 +1153,7 @@
     // Focus the editor and show the caret on page load
     document.addEventListener('DOMContentLoaded', () => {
       editor.focus(); // Focus on the editor to show the caret
-      updateMacCaret(); // Update the caret position
+      setTimeout(() => { updateMacCaret(); resetCaretIdle(); }, 50);
     });
 
     // Update the caret position on input and key events
@@ -1127,6 +1182,22 @@
     }
     editor.addEventListener('input', scheduleRipple);
     editor.addEventListener('keydown', scheduleRipple);
+
+    let idleTimer1, idleTimer2;
+    function resetCaretIdle() {
+      clearTimeout(idleTimer1);
+      clearTimeout(idleTimer2);
+      editor.classList.remove('slow-blink');
+      idleTimer1 = setTimeout(() => {
+        editor.classList.add('slow-blink');
+        idleTimer2 = setTimeout(() => {
+          triggerCaretRipple();
+        }, 20000);
+      }, 10000);
+    }
+    ['input','keydown','mousemove','mousedown'].forEach(ev => {
+      editor.addEventListener(ev, resetCaretIdle);
+    });
 
     function keepCaretCentered() {
       if (!document.body.classList.contains('typewriter-mode')) return;
