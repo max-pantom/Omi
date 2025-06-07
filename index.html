@@ -206,6 +206,23 @@
       box-shadow: none;
       margin-top: 5px;
     }
+    #highlight-picker {
+      position: absolute;
+      display: none;
+      background: var(--menu-bg, white);
+      padding: 0.3em;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      gap: 4px;
+      z-index: 10006;
+    }
+    #highlight-picker span {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 1px solid rgba(0,0,0,0.2);
+    }
     .option {
       padding: 0.5rem 1rem;
       cursor: pointer;
@@ -345,11 +362,12 @@
       background: rgba(0,0,0,0.1);
       pointer-events: none;
       z-index: 10005;
+    }
     #slashSuggestions{position:absolute;display:none;list-style:none;margin:0;padding:0.3em 0;background:var(--menu-bg,white);border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.15);z-index:10005;font-size:0.95em;}
     #slashSuggestions li{padding:0.2em 0.8em;cursor:pointer;white-space:nowrap;}
     #slashSuggestions li:hover{background:rgba(0,0,0,0.05);}
-    body[data-theme="dark"] #slashSuggestions li:hover,body[data-theme="night"] #slashSuggestions li:hover{background:#232329;color:#fff;}
-    }
+    body[data-theme="dark"] #slashSuggestions li:hover,
+    body[data-theme="night"] #slashSuggestions li:hover{background:#232329;color:#fff;}
     body[data-theme="dark"].line-highlight::before,
     body[data-theme="night"].line-highlight::before {
       background: rgba(255,255,255,0.08);
@@ -361,8 +379,10 @@
   <div id="editor" contenteditable="true" spellcheck="true" aria-label="Omi" data-placeholder="Start writing..."></div>
   <ul id="slashSuggestions" class="hidden"></ul>
   <div id="word-count"></div>
-  <div id="timer-minimal" style="position:fixed;right:1vw;bottom:1.5vh;text-align:right;color:#aaa;font-size:0.95rem;font-family:inherit;pointer-events:none;user-select:none;letter-spacing:0.01em;z-index:10001;display:none;"></div>
-  <div id="font-switcher" style="position:fixed;right:1vw;bottom:1.5vh;color:#aaa;font-size:0.95rem;font-family:inherit;user-select:none;cursor:pointer;z-index:10001;">Geist</div>
+  <div id="bottom-right" style="position:fixed;right:1vw;bottom:1.5vh;display:flex;gap:0.5em;align-items:center;color:#aaa;font-size:0.95rem;font-family:inherit;z-index:10001;">
+    <div id="font-switcher" style="user-select:none;cursor:pointer;">Geist</div>
+    <div id="timer-minimal" style="pointer-events:none;user-select:none;letter-spacing:0.01em;display:none;"></div>
+  </div>
   <div id="active-commands" style="position:fixed;left:1vw;bottom:1.5vh;z-index:10002;color:#aaa;font-size:0.95rem;font-family:inherit;user-select:none;pointer-events:none;text-align:left;"></div>
   <div id="stats-minimal" style="position:fixed;left:1vw;bottom:4.5vh;z-index:10003;color:#aaa;font-size:0.95rem;font-family:inherit;user-select:none;pointer-events:none;text-align:left;display:none;"></div>
   <div id="zen-overlay" style="display:none;position:fixed;z-index:99999;top:0;left:0;width:100vw;height:100vh;background:rgba(255,255,255,0.7);"></div>
@@ -372,6 +392,7 @@
   <div id="copyDropdown"></div>
   <div id="toast"></div>
   <div id="caretRipple"></div>
+  <div id="highlight-picker"></div>
   <div id="command-help-btn" style="position:fixed;right:1vw;top:1.5vh;bottom:auto;color:#aaa;font-size:0.95rem;font-family:inherit;user-select:none;cursor:pointer;z-index:10001;">Commands</div>
   <div id="command-help-modal" style="display:none;position:fixed;z-index:10002;top:5vh;right:1vw;left:auto;transform:none;background:#fff;color:#222;padding:1.5em 2em;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.18);font-family:inherit;min-width:260px;max-width:90vw;"></div>
   <script>
@@ -1416,17 +1437,28 @@
     }
 
     function toMarkdown(html) {
-      return html
-        .replace(/<strong>(.*?)<\/strong>/g, '**$1**')
-        .replace(/<b>(.*?)<\/b>/g, '**$1**')
-        .replace(/<em>(.*?)<\/em>/g, '*$1*')
-        .replace(/<i>(.*?)<\/i>/g, '*$1*')
-        .replace(/<del>(.*?)<\/del>/g, '~~$1~~')
-        .replace(/<u>(.*?)<\/u>/g, '__$1__')
-        .replace(/<code>(.*?)<\/code>/g, '`$1`')
-        .replace(/<br\s*\/?>/g, '\n')
-        .replace(/<\/p><p>/g, '\n\n')
-        .replace(/<\/?[^>]+(>|$)/g, ''); // strip all other HTML
+      const tmp = document.createElement('div');
+      tmp.innerHTML = html;
+      function walk(node) {
+        let out = '';
+        node.childNodes.forEach(child => {
+          if (child.nodeType === 3) {
+            out += child.textContent;
+          } else if (child.nodeType === 1) {
+            const tag = child.tagName.toLowerCase();
+            if (tag === 'strong' || tag === 'b') out += '**' + walk(child) + '**';
+            else if (tag === 'em' || tag === 'i') out += '*' + walk(child) + '*';
+            else if (tag === 'u') out += '__' + walk(child) + '__';
+            else if (tag === 'del') out += '~~' + walk(child) + '~~';
+            else if (tag === 'code') out += '`' + walk(child) + '`';
+            else if (tag === 'br') out += '\n';
+            else if (tag === 'p') out += walk(child) + '\n\n';
+            else out += walk(child);
+          }
+        });
+        return out;
+      }
+      return walk(tmp).replace(/\n{3,}/g, '\n\n').trim();
     }
 
     function showToast(message) {
@@ -1748,6 +1780,47 @@
       html += '</ul>';
       helpModal.innerHTML = html;
       helpModal.style.display = 'block';
+    });
+
+    const highlightPicker = document.getElementById('highlight-picker');
+    const highlightColors = ['#fff59d', '#a5d6a7', '#90caf9', '#f48fb1'];
+    highlightColors.forEach(c => {
+      const span = document.createElement('span');
+      span.style.backgroundColor = c;
+      highlightPicker.appendChild(span);
+      span.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        document.execCommand('styleWithCSS', false, true);
+        document.execCommand('hiliteColor', false, c);
+        highlightPicker.style.display = 'none';
+        localStorage.setItem('omi-content', editor.innerHTML);
+      });
+    });
+
+    function showHighlightPicker() {
+      const sel = window.getSelection();
+      if (sel.rangeCount && !sel.isCollapsed && editor.contains(sel.anchorNode)) {
+        const rect = getSelectionRect();
+        if (rect) {
+          highlightPicker.style.left = rect.left + 'px';
+          highlightPicker.style.top = (rect.top - 30 + window.scrollY) + 'px';
+          highlightPicker.style.display = 'flex';
+        }
+      } else {
+        highlightPicker.style.display = 'none';
+      }
+    }
+
+    editor.addEventListener('mouseup', () => setTimeout(showHighlightPicker, 0));
+    editor.addEventListener('keyup', (e) => {
+      if (e.key.startsWith('Arrow') || e.key === 'Shift') {
+        showHighlightPicker();
+      }
+    });
+    document.addEventListener('mousedown', (e) => {
+      if (!highlightPicker.contains(e.target)) {
+        highlightPicker.style.display = 'none';
+      }
     });
   </script>
 
