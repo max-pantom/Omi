@@ -1638,6 +1638,7 @@
     }
 
     const commandDescriptions = {
+      "Ctrl+M": "Change theme" ,
       clear: 'Clear editor',
       save: 'Save snapshot',
       load: 'Load snapshot',
@@ -1650,13 +1651,12 @@
       timer: 'Start a timer',
       stats: 'Show stats',
       typewriter: 'Typewriter mode',
-      "Ctrl+M": "Cycle theme" ,
       F11: 'Zen mode',
       lines: 'Highlight lines',
-      font: 'Random font'
-      ,blog: 'Blog layout'
-      ,newsletter: 'Newsletter layout'
-      ,ebook: 'eBook layout'
+      font: 'Random font',
+      blog: 'Blog layout',
+      newsletter: 'Newsletter layout',
+      ebook: 'eBook layout'
     };
 
     const helpBtn = document.getElementById('command-help-btn');
@@ -1679,9 +1679,11 @@
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      editor.focus();
       updateMacCaret();
     });
+    window.onload = function() {
+       document.getElementById('editor').focus();
+   };
   </script>
 
   <script>window.SOLA_SITE_ID = "12u";</script>
