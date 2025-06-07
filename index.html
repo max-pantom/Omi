@@ -210,11 +210,11 @@
       position: absolute;
       display: none;
       background: var(--menu-bg, white);
-      padding: 0.3em;
+      padding: 0.5em;
       border-radius: 8px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.15);
       gap: 4px;
-      z-index: 10006;
+      z-index: 100010;
     }
     #highlight-picker span {
       width: 14px;
@@ -222,6 +222,10 @@
       border-radius: 50%;
       cursor: pointer;
       border: 1px solid rgba(0,0,0,0.2);
+    }
+    body[data-theme="dark"] #highlight-picker span,
+    body[data-theme="night"] #highlight-picker span {
+      border-color: rgba(255,255,255,0.2);
     }
     .option {
       padding: 0.5rem 1rem;
@@ -1522,7 +1526,7 @@
 
     // Function to show command suggestions
     function showCommandSuggestions(input) {
-        const suggestions = ["clear","save","load","history","copy","image","pdf","zen","focus","timer","stats","typewriter","lines","font","blog","newsletter","ebook"];
+        const suggestions = ["clear","clearx","save","load","history","copy","export","image","pdf","zen","focus","timer","stats","typewriter","lines","font","blog","newsletter","ebook"];
         const filteredSuggestions = suggestions.filter(cmd => cmd.startsWith(input.slice(1)));
 
         slashSuggestions.innerHTML = filteredSuggestions.map(cmd => `<li data-cmd="${cmd}">${cmd}</li>`).join("");
@@ -1746,10 +1750,12 @@
     const commandDescriptions = {
       "Ctrl+M": "Change theme" ,
       clear: 'Clear editor',
+      clearx: 'Reset everything',
       save: 'Save snapshot',
       load: 'Load snapshot',
       history: 'Show history',
       copy: 'Copy content',
+      export: 'Export text',
       image: 'Insert image',
       pdf: 'Insert PDF',
       zen: 'Toggle zen mode',
