@@ -229,6 +229,7 @@
     }
     .option {
       padding: 0.5rem 1rem;
+      margin: 2px 0;
       cursor: pointer;
     }
     .option:hover {
@@ -368,8 +369,9 @@
       z-index: 10005;
     }
     #slashSuggestions{position:absolute;display:none;list-style:none;margin:0;padding:0.3em 0;background:var(--menu-bg,white);border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.15);z-index:10005;font-size:0.95em;}
-    #slashSuggestions li{padding:0.2em 0.8em;cursor:pointer;white-space:nowrap;}
+    #slashSuggestions li{padding:0.2em 0.8em;margin:2px 0;cursor:pointer;white-space:nowrap;}
     #slashSuggestions li:hover{background:rgba(0,0,0,0.05);}
+    #slashSuggestions li.selected{background:rgba(0,0,0,0.1);}
     body[data-theme="dark"] #slashSuggestions li:hover,
     body[data-theme="night"] #slashSuggestions li:hover{background:#232329;color:#fff;}
     body[data-theme="dark"].line-highlight::before,
@@ -406,6 +408,7 @@
     let selectionRange = null;
     let themeCycle = ['light', 'dark', 'night'];
     const slashSuggestions = document.getElementById("slashSuggestions");
+    let slashSelectedIndex = -1;
     const fontSwitcher = document.getElementById('font-switcher');
     const fonts = ['Instrument Serif', 'Geist Mono', 'Monrope', 'PP Neue'];
     let currentFont = localStorage.getItem('omi-font') || 'Geist';
@@ -1535,12 +1538,23 @@
           slashSuggestions.style.left = `${rect.left}px`;
           slashSuggestions.style.top = `${rect.bottom + 5}px`;
           slashSuggestions.style.display = 'block';
+          slashSelectedIndex = 0;
+          updateSlashSelection();
         } else {
           slashSuggestions.style.display = 'none';
+          slashSelectedIndex = -1;
         }
+    }
+    function updateSlashSelection() {
+      const options = slashSuggestions.querySelectorAll('li');
+      options.forEach((li, i) => {
+        if (i === slashSelectedIndex) li.classList.add('selected');
+        else li.classList.remove('selected');
+      });
     }
     function hideSlashSuggestions() {
       slashSuggestions.style.display = "none";
+      slashSelectedIndex = -1;
     }
     slashSuggestions.addEventListener("mousedown", (e) => {
       const li = e.target.closest("li");
@@ -1568,10 +1582,29 @@
       hideSlashSuggestions();
     }
     editor.addEventListener("keydown", (e) => {
-      if (e.key === "Tab" && slashSuggestions.style.display === "block") {
-        e.preventDefault();
-        const first = slashSuggestions.querySelector("li");
-        if (first) insertSlashCommand(first.dataset.cmd);
+      if (slashSuggestions.style.display === "block") {
+        const options = slashSuggestions.querySelectorAll("li");
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          slashSelectedIndex = (slashSelectedIndex + 1) % options.length;
+          updateSlashSelection();
+        } else if (e.key === "ArrowUp") {
+          e.preventDefault();
+          slashSelectedIndex = (slashSelectedIndex - 1 + options.length) % options.length;
+          updateSlashSelection();
+        } else if (e.key === "Enter") {
+          e.preventDefault();
+          if (slashSelectedIndex >= 0 && options[slashSelectedIndex]) {
+            const cmd = options[slashSelectedIndex].dataset.cmd;
+            insertSlashCommand(cmd);
+            executeCommand(cmd);
+            removeSlashCommand('/' + cmd);
+          }
+        } else if (e.key === "Tab") {
+          e.preventDefault();
+          const first = options[0];
+          if (first) insertSlashCommand(first.dataset.cmd);
+        }
       }
     });
 
