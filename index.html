@@ -40,7 +40,8 @@
       color: inherit;
       font-family: inherit;
       transition: background 0.2s, color 0.2s;
-      caret-color: transparent;
+      /* Show default caret as fallback */
+      caret-color: var(--fg, #222);
       position: relative;
       overflow-y: auto;
       scrollbar-width: thin;
@@ -83,6 +84,9 @@
     body[data-theme="dark"] #editor:hover::-webkit-scrollbar-thumb,
     body[data-theme="night"] #editor:hover::-webkit-scrollbar-thumb {
       background: rgba(255,255,255,0.4);
+    }
+    #editor.mac-caret-active {
+      caret-color: transparent;
     }
     #editor.mac-caret-active::after {
       content: '';
@@ -457,11 +461,10 @@
     // Helper: get selection rect
     function getSelectionRect() {
       const sel = window.getSelection();
-      if (sel.rangeCount === 0) return null;
+      if (!sel.rangeCount) return null;
       const range = sel.getRangeAt(0).cloneRange();
-      if (range.collapsed) return null;
-      const rect = range.getBoundingClientRect();
-      return rect;
+      const rect = range.getClientRects()[0];
+      return rect || null;
     }
 
     // Command Bar JS
