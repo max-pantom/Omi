@@ -9,6 +9,9 @@
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <!-- Fonts -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;700&family=Instrument+Serif&family=Geist+Mono&family=Monrope&family=PP+Neue+Machina&display=swap">
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Custom Styles -->
   <style>
     html, body {
       height: 100%;
@@ -381,26 +384,34 @@
     }
   </style>
 </head>
-<body>
-  <div id="editor" contenteditable="true" spellcheck="true" aria-label="Omi" data-placeholder="Start writing..."></div>
+<body class="font-sans">
+  <!-- Editor -->
+  <div id="editor" contenteditable="true" spellcheck="true" aria-label="Omi" data-placeholder="Start writing..." class="w-screen h-screen p-[5vh_10vw] text-[1.25rem] leading-[1.7] overflow-y-auto"></div>
+  <!-- Slash command suggestions -->
   <ul id="slashSuggestions" class="hidden"></ul>
+  <!-- Word count display -->
   <div id="word-count"></div>
-  <div id="bottom-right" style="position:fixed;right:1vw;bottom:1.5vh;display:flex;gap:0.5em;align-items:center;color:#aaa;font-size:0.95rem;font-family:inherit;z-index:10001;">
-    <div id="font-switcher" style="user-select:none;cursor:pointer;">Geist</div>
-    <div id="timer-minimal" style="pointer-events:none;user-select:none;letter-spacing:0.01em;display:none;"></div>
+  <!-- Bottom right controls -->
+  <div id="bottom-right" class="fixed right-[1vw] bottom-[1.5vh] flex gap-2 items-center text-gray-400 text-sm" style="z-index:10001;">
+    <div id="font-switcher" class="select-none cursor-pointer">Geist</div>
+    <div id="timer-minimal" class="pointer-events-none select-none tracking-wide hidden"></div>
   </div>
-  <div id="active-commands" style="position:fixed;left:1vw;bottom:1.5vh;z-index:10002;color:#aaa;font-size:0.95rem;font-family:inherit;user-select:none;pointer-events:none;text-align:left;"></div>
-  <div id="stats-minimal" style="position:fixed;left:1vw;bottom:4.5vh;z-index:10003;color:#aaa;font-size:0.95rem;font-family:inherit;user-select:none;pointer-events:none;text-align:left;display:none;"></div>
-  <div id="zen-overlay" style="display:none;position:fixed;z-index:99999;top:0;left:0;width:100vw;height:100vh;background:rgba(255,255,255,0.7);"></div>
-  <div id="timer-box" style="display:none;position:fixed;top:2vh;right:2vw;z-index:10000;background:rgba(30,30,40,0.92);color:#fff;padding:0.7em 1.3em;border-radius:8px;font-size:1.2rem;font-family:inherit;box-shadow:0 2px 12px rgba(0,0,0,0.12);"></div>
-  <div id="stats-modal" style="display:none;position:fixed;z-index:10001;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;color:#222;padding:2em 2.5em;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.18);font-family:inherit;min-width:260px;max-width:90vw;"></div>
-  <div id="link-tooltip" style="display:none;position:fixed;z-index:99999;"></div>
+  <!-- Active commands -->
+  <div id="active-commands" class="fixed left-[1vw] bottom-[1.5vh] text-gray-400 text-sm select-none pointer-events-none text-left" style="z-index:10002;"></div>
+  <!-- Minimal stats -->
+  <div id="stats-minimal" class="fixed left-[1vw] bottom-[4.5vh] text-gray-400 text-sm select-none pointer-events-none text-left hidden" style="z-index:10003;"></div>
+  <!-- Overlays and modals -->
+  <div id="zen-overlay" class="fixed inset-0 hidden" style="z-index:99999; background:rgba(255,255,255,0.7);"></div>
+  <div id="timer-box" class="fixed top-[2vh] right-[2vw] text-white p-3 rounded-lg shadow-lg hidden" style="z-index:10000; background:rgba(30,30,40,0.92); font-size:1.2rem;"></div>
+  <div id="stats-modal" class="fixed hidden" style="z-index:10001; top:50%; left:50%; transform:translate(-50%,-50%); background:#fff; color:#222; padding:2em 2.5em; border-radius:12px; box-shadow:0 8px 32px rgba(0,0,0,0.18); min-width:260px; max-width:90vw;"></div>
+  <div id="link-tooltip" class="fixed hidden" style="z-index:99999;"></div>
   <div id="copyDropdown"></div>
   <div id="toast"></div>
   <div id="caretRipple"></div>
   <div id="highlight-picker"></div>
-  <div id="command-help-btn" style="position:fixed;right:1vw;top:1.5vh;bottom:auto;color:#aaa;font-size:0.95rem;font-family:inherit;user-select:none;cursor:pointer;z-index:10001;">Commands</div>
-  <div id="command-help-modal" style="display:none;position:fixed;z-index:10002;top:5vh;right:1vw;left:auto;transform:none;background:#fff;color:#222;padding:1.5em 2em;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.18);font-family:inherit;min-width:260px;max-width:90vw;"></div>
+  <div id="command-help-btn" class="fixed right-[1vw] top-[1.5vh] text-gray-400 text-sm select-none cursor-pointer" style="z-index:10001;">Commands</div>
+  <div id="command-help-modal" class="fixed hidden" style="z-index:10002; top:5vh; right:1vw; background:#fff; color:#222; padding:1.5em 2em; border-radius:12px; box-shadow:0 8px 32px rgba(0,0,0,0.18); min-width:260px; max-width:90vw;"></div>
+  <!-- Main application script -->
   <script>
     const SNAPSHOT_KEY = "omi-snapshots"; // Define the key for storing snapshots
     const editor = document.getElementById('editor');
@@ -1863,6 +1874,7 @@
     });
   </script>
 
+  <!-- Mac caret initialization -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       updateMacCaret();
@@ -1872,6 +1884,7 @@
    };
   </script>
 
+  <!-- Analytics -->
   <script>window.SOLA_SITE_ID = "12u";</script>
   <script src="https://sola-three.vercel.app/api/sola.js" defer></script>
 
